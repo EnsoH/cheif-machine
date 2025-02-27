@@ -2,6 +2,7 @@ package modules
 
 import (
 	"context"
+	"cw/httpClient"
 	"cw/models"
 	"sync"
 
@@ -9,20 +10,29 @@ import (
 )
 
 type ModulesFasad interface {
-	Action() error
-	GetBalances() error
-	GetPrices() error
+	Withdraw(token, address, network string, amount float64) error
+	GetBalances(token string) error
+	GetPrices(token string) error
 }
 
 type ModuleFactory func(cfg *models.CexConfig) (ModulesFasad, error)
 
 func ModulesInit(cfg *models.CexConfig) (map[string]ModulesFasad, error) {
+	hc, err := httpClient.NewHttpClient(
+		httpClient.WithHttp2(),
+		httpClient.WithProxy(""),
+	)
+	if err != nil {
+		return nil, err
+	}
 	modules := map[string]ModuleFactory{
 		"bybit": func(cfg *models.CexConfig) (ModulesFasad, error) {
 			return NewBybitModule(
-				cfg.BybitCfg.WithdrawEndpoint,
+				cfg.BybitCfg.BalanceEndpoint,
+				cfg.BybitCfg.TickersEndpoint,
 				cfg.BybitCfg.API_key,
 				cfg.BybitCfg.API_secret,
+				hc,
 			)
 		},
 	}

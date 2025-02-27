@@ -7,19 +7,13 @@ type Config struct {
 
 type CexConfig struct {
 	BybitCfg Bybit `json:"bybit"`
-	// Cex        string `json:"cex"`
-	// API_key    string `json:"api_key"`
-	// API_secret string `json:"secret_key"`
-	// Chain       []string `json:"chain"`
-	// Currency    []string `json:"currency"`
-	// AmountRange []int    `json:"amount_range"`
-	// Decimals    int      `json:"decimals"`
 }
 
 type Bybit struct {
-	API_key          string `json:"api_key"`
-	API_secret       string `json:"secret_key"`
-	WithdrawEndpoint string `json:"withdraw_endpoint"`
+	API_key         string `json:"api_key"`
+	API_secret      string `json:"secret_key"`
+	BalanceEndpoint string `json:"balance_endpoint"`
+	TickersEndpoint string `json:"tickers_endpoint"`
 }
 
 type WithdrawConfig struct {
@@ -35,4 +29,16 @@ type WithdrawAction struct {
 	Chain    string
 	Amount   float64
 	Currency string
+}
+
+type BybitTickerResponse struct {
+	Result struct {
+		List []struct {
+			LastPrice string `json:"lastPrice"`
+		} `json:"list"`
+	} `json:"result"`
+}
+
+type BybitWithdrawResponse struct {
+	Result string `json:"result"`
 }

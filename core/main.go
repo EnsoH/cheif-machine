@@ -14,7 +14,7 @@ import (
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		logger.GlobalLogger.Error(err)
+		// logger.GlobalLogger.Error(err)
 		return
 	}
 
@@ -30,13 +30,18 @@ func main() {
 		return
 	}
 
+	// if err := process.InitSingltons("", map[string]string{}); err != nil {
+	// 	logger.GlobalLogger.Error(err)
+	// 	return
+	// }
+
 	var withdrawCfg *models.WithdrawConfig
 	if err := utils.GetCexConfig("withdraw_config", &withdrawCfg); err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
 
-	addresses, err := utils.FileReader("/Users/ssq/Desktop/Softs/cw-machine/config/data/withdraw_addresses.dev.txt")
+	addresses, err := utils.FileReader("/Users/ssq/Desktop/Softs/cex-machine/config/data/withdraw_addresses.dev.txt")
 	if err != nil {
 		logger.GlobalLogger.Error(err)
 		return
@@ -56,13 +61,14 @@ func main() {
 		log.Printf("value: %s", act.Amount)
 		log.Printf("_________")
 	}
-	return
+
+	// return
 	modules, err := modules.ModulesInit(&cexcfg.CEXConfigs)
 	if err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
 
-	modules["bybit"].GetPrices()
+	modules["bybit"].GetPrices("ETH")
 	return
 }
