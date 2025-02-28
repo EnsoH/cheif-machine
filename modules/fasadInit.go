@@ -2,6 +2,7 @@ package modules
 
 import (
 	"context"
+	"cw/config"
 	"cw/httpClient"
 	"cw/models"
 	"sync"
@@ -17,10 +18,10 @@ type ModulesFasad interface {
 
 type ModuleFactory func(cfg *models.CexConfig) (ModulesFasad, error)
 
-func ModulesInit(cfg *models.CexConfig) (map[string]ModulesFasad, error) {
+func ModulesInit() (map[string]ModulesFasad, error) {
 	hc, err := httpClient.NewHttpClient(
 		httpClient.WithHttp2(),
-		httpClient.WithProxy(""),
+		httpClient.WithProxy("http://yylmmudz:crab3o3p9lu0@45.146.30.136:6640"),
 	)
 	if err != nil {
 		return nil, err
@@ -50,7 +51,7 @@ func ModulesInit(cfg *models.CexConfig) (map[string]ModulesFasad, error) {
 		name, factory := name, factory
 
 		g.Go(func() error {
-			module, err := factory(cfg)
+			module, err := factory(&config.Cfg.CEXConfigs)
 			if err != nil {
 				return err
 			}

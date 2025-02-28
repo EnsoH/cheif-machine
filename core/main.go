@@ -1,8 +1,9 @@
 package main
 
 import (
+	"cw/config"
+	"cw/globals"
 	"cw/logger"
-	"cw/models"
 	"cw/modules"
 	"cw/process"
 	"cw/utils"
@@ -13,57 +14,33 @@ import (
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		// logger.GlobalLogger.Error(err)
-		return
-	}
-
-	env := os.Getenv("ENV")
-	if env == "" {
-		env = "development"
-	}
-	logger.GlobalLogger.Infof("Current ENV: %v", env)
-
-	var cexcfg *models.Config
-	if err := utils.GetCexConfig("cex_config", &cexcfg); err != nil {
+	setENV()
+	if err := config.InitConfigs(); err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
-
-	// if err := process.InitSingltons("", map[string]string{}); err != nil {
-	// 	logger.GlobalLogger.Error(err)
-	// 	return
-	// }
-
-	var withdrawCfg *models.WithdrawConfig
-	if err := utils.GetCexConfig("withdraw_config", &withdrawCfg); err != nil {
-		logger.GlobalLogger.Error(err)
-		return
-	}
-
-	addresses, err := utils.FileReader("/Users/ssq/Desktop/Softs/cex-machine/config/data/withdraw_addresses.dev.txt")
+	log.Printf("cfg: %v", config.Cfg)
+	log.Printf("withd: %v", config.WithdrawCfg)
+	addrPath, err := utils.GetPath(globals.Addresses)
 	if err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
-	log.Printf("addr len: %d", len(addresses))
-	actions, err := process.WithdrawFactory(withdrawCfg, addresses)
+
+	addresses, err := utils.FileReader(addrPath)
+	if err != nil {
+		logger.GlobalLogger.Error(err)
+		return
+	}
+
+	actions, err := process.WithdrawFactory(addresses)
 	if err != nil {
 		logger.GlobalLogger.Error(err)
 
 		return
 	}
-	for _, act := range actions {
-		log.Printf("addr: %s", act.Address)
-		log.Printf("cex: %s", act.CEX)
-		log.Printf("chain: %s", act.Chain)
-		log.Printf("currency: %s", act.Currency)
-		log.Printf("value: %s", act.Amount)
-		log.Printf("_________")
-	}
 
-	// return
-	modules, err := modules.ModulesInit(&cexcfg.CEXConfigs)
+	modules, err := modules.ModulesInit()
 	if err != nil {
 		logger.GlobalLogger.Error(err)
 		return
@@ -71,4 +48,17 @@ func main() {
 
 	modules["bybit"].GetPrices("ETH")
 	return
+}
+
+func setENV() string {
+	if err := godotenv.Load(); err != nil {
+		logger.GlobalLogger.Warnf("Not found ENV. Set default params(production)")
+		os.Setenv("ENV", "production")
+	}
+	env := os.Getenv("ENV")
+	if env == "" {
+		env = "development"
+		os.Setenv("ENV", "development")
+	}
+	return env
 }

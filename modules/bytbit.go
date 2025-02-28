@@ -73,12 +73,10 @@ func (b *BybitModule) GetBalances(token string) error {
 	// Параметры запроса
 	params := url.Values{}
 	params.Add("accountType", "FUND")
-	params.Add("coin", token) // Замените на нужную валюту
+	params.Add("coin", token)
 
-	// Создание метки времени
 	timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
 
-	// Формируем строку для подписи
 	queryString := params.Encode()
 	preSign := timestamp + b.API_key + "5000" + queryString
 	// Создание HMAC-SHA256 подписи
@@ -103,7 +101,7 @@ func (b *BybitModule) GetBalances(token string) error {
 	req.Header.Add("X-BAPI-RECV-WINDOW", "5000")
 
 	transport := &http.Transport{}
-	proxy, err := url.Parse("")
+	proxy, err := url.Parse("http://yylmmudz:crab3o3p9lu0@45.146.30.136:6640")
 	if err != nil {
 		return err
 	}

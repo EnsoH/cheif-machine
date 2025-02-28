@@ -2,8 +2,10 @@ package process
 
 import (
 	"context"
+	"cw/config"
 	"cw/models"
 	"fmt"
+	"log"
 	"math"
 	"math/rand"
 	"sync"
@@ -11,7 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func WithdrawFactory(withdrawConfig *models.WithdrawConfig, addresses []string) ([]models.WithdrawAction, error) {
+func WithdrawFactory(addresses []string) ([]models.WithdrawAction, error) {
 	if len(addresses) == 0 {
 		return nil, fmt.Errorf("Нет списка адресов.")
 	}
@@ -28,7 +30,7 @@ func WithdrawFactory(withdrawConfig *models.WithdrawConfig, addresses []string) 
 	for i, address := range addresses {
 		address := address
 		g.Go(func() error {
-			action := withdrawActionInit(withdrawConfig, address)
+			action := withdrawActionInit(address)
 
 			mu.Lock()
 			result[i] = *action
@@ -45,15 +47,16 @@ func WithdrawFactory(withdrawConfig *models.WithdrawConfig, addresses []string) 
 	return result, nil
 }
 
-func withdrawActionInit(withdrawConfig *models.WithdrawConfig, address string) *models.WithdrawAction {
-	chain := getRandomChain(withdrawConfig.Chain)
-	currency := getRandomChain(withdrawConfig.Currency)
-	amount := getRandomAmount(withdrawConfig.AmountRange)
+func withdrawActionInit(address string) *models.WithdrawAction {
+	// chain := getRandomChain(config.WithdrawCfg.Chain)
+	log.Printf("1111 %v", config.WithdrawCfg)
+	currency := getRandomChain(config.WithdrawCfg.Currency)
+	amount := getRandomAmount(config.WithdrawCfg.AmountRange)
 
 	return &models.WithdrawAction{
-		Address:  address,
-		CEX:      withdrawConfig.CEX,
-		Chain:    chain,
+		Address: address,
+		CEX:     config.WithdrawCfg.CEX,
+		// Chain:    chain,
 		Currency: currency,
 		Amount:   amount,
 	}
@@ -65,6 +68,10 @@ func getRandomChain(chains []string) string {
 
 func getRandomAmount(amountArr []float64) float64 {
 	if len(amountArr) == 0 {
+		return 0
+	}
+
+	if len(amountArr) == 1 {
 		return amountArr[0]
 	}
 

@@ -1,43 +1,40 @@
 package utils
 
 import (
-	"cw/config"
+	"cw/globals"
+	"fmt"
 	"os"
+	"strings"
 )
 
-func GetCexConfig(file string, cfg interface{}) error {
-	if err := config.LoadConfig(GetPath(file), &cfg); err != nil {
-		return err
-	}
-	return nil
-}
-
-func GetPath(path string) string {
+func GetPath(path string) (string, error) {
 	env := os.Getenv("ENV")
-	if env == "" {
-		env = "development"
-	}
-
 	basePath := map[string]string{
-		"cex_config":      "config/data/cex_configuration.json",
-		"withdraw_config": "config/data/withdraw_configuration.json",
-		"proxy":           "account/proxy.txt",
+		globals.Configuration: "config/data/configuration.json",
+		globals.Withdraw:      "config/data/withdraw_configuration.json",
+		globals.Proxy:         "account/proxy.txt",
+		globals.Addresses:     "config/data/withdraw_addresses.txt",
 	}
 
-	if env == "development" {
-		devPaths := make(map[string]string)
-		for key, value := range basePath {
-			devPaths[key] = addDevSuffix(value)
-		}
-		return devPaths[path]
+	// Проверяем, существует ли путь
+	filePath, exists := basePath[path]
+	if !exists {
+		return "", fmt.Errorf("unknown config key: %s", path)
 	}
-	return basePath[path]
+
+	// Если development, добавляем .dev
+	if env == "development" {
+		filePath = addDevSuffix(filePath)
+	}
+
+	return filePath, nil
 }
 
 func addDevSuffix(path string) string {
-	extIndex := len(path) - len(".json")
-	if extIndex > 0 && path[extIndex:] == ".json" {
-		return path[:extIndex] + ".dev.json"
+	if strings.HasSuffix(path, ".json") {
+		return strings.TrimSuffix(path, ".json") + ".dev.json"
+	} else if strings.HasSuffix(path, ".txt") {
+		return strings.TrimSuffix(path, ".txt") + ".dev.txt"
 	}
 	return path
 }
