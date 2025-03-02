@@ -1,8 +1,9 @@
 package models
 
 type Config struct {
-	Threads    int       `json:"threads"`
-	CEXConfigs CexConfig `json:"cex"`
+	Threads     int       `json:"threads"`
+	IpAddresses []string  `json:"ip_addresses"`
+	CEXConfigs  CexConfig `json:"cex"`
 }
 
 type CexConfig struct {
@@ -21,14 +22,16 @@ type WithdrawConfig struct {
 	Chain       []string  `json:"chain"`
 	Currency    []string  `json:"currency"`
 	AmountRange []float64 `json:"amount_range"`
+	TimeRange   []float64 `json:"time_range"`
 }
 
 type WithdrawAction struct {
-	CEX      string
-	Address  string
-	Chain    string
-	Amount   float64
-	Currency string
+	CEX       string
+	Address   string
+	Chain     string
+	Amount    float64
+	Currency  string
+	TimeRange float64
 }
 
 type BybitTickerResponse struct {
@@ -41,4 +44,14 @@ type BybitTickerResponse struct {
 
 type BybitWithdrawResponse struct {
 	Result string `json:"result"`
+}
+
+type BybitBalanceResponse struct {
+	Result struct {
+		Balance []struct {
+			Coin          string `json:"coin"`
+			Transfer      string `json:"transferBalance"`
+			WalletBalance string `json:"walletBalance"`
+		} `json:"balance"`
+	} `json:"result"`
 }

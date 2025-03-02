@@ -8,6 +8,13 @@ import (
 	"github.com/sirupsen/logrus/hooks/writer"
 )
 
+// Singlton...
+var GlobalLogger Logger
+
+func init() {
+	GlobalLogger = New(InfoLevel)
+}
+
 type Fields map[string]interface{}
 
 type LoggerLevel string
@@ -76,10 +83,4 @@ func (l logger) WithFields(fields Fields) Logger {
 	return logger{
 		Logger: l.Logger.WithFields(logrus.Fields(fields)).Logger,
 	}
-}
-
-var GlobalLogger Logger
-
-func init() {
-	GlobalLogger = New(InfoLevel)
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"cw/config"
 	"cw/httpClient"
-	"cw/models"
+	"log"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
@@ -12,27 +12,30 @@ import (
 
 type ModulesFasad interface {
 	Withdraw(token, address, network string, amount float64) error
-	GetBalances(token string) error
-	GetPrices(token string) error
+	GetBalances(token string) (float64, error)
+	GetPrices(token string) (float64, error)
 }
 
-type ModuleFactory func(cfg *models.CexConfig) (ModulesFasad, error)
+type ModuleFactory func() (ModulesFasad, error)
 
 func ModulesInit() (map[string]ModulesFasad, error) {
+	log.Printf(config.Cfg.IpAddresses[0])
 	hc, err := httpClient.NewHttpClient(
 		httpClient.WithHttp2(),
-		httpClient.WithProxy("http://yylmmudz:crab3o3p9lu0@45.146.30.136:6640"),
+		httpClient.WithProxy(config.Cfg.IpAddresses[0]),
 	)
 	if err != nil {
 		return nil, err
 	}
+
 	modules := map[string]ModuleFactory{
-		"bybit": func(cfg *models.CexConfig) (ModulesFasad, error) {
+		"bybit": func() (ModulesFasad, error) {
 			return NewBybitModule(
-				cfg.BybitCfg.BalanceEndpoint,
-				cfg.BybitCfg.TickersEndpoint,
-				cfg.BybitCfg.API_key,
-				cfg.BybitCfg.API_secret,
+				config.Cfg.CEXConfigs.BybitCfg.BalanceEndpoint,
+				config.Cfg.CEXConfigs.BybitCfg.TickersEndpoint,
+				config.Cfg.CEXConfigs.BybitCfg.API_key,
+				config.Cfg.CEXConfigs.BybitCfg.API_secret,
+				config.Cfg.IpAddresses[0],
 				hc,
 			)
 		},
@@ -51,7 +54,7 @@ func ModulesInit() (map[string]ModulesFasad, error) {
 		name, factory := name, factory
 
 		g.Go(func() error {
-			module, err := factory(&config.Cfg.CEXConfigs)
+			module, err := factory()
 			if err != nil {
 				return err
 			}

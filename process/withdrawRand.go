@@ -5,7 +5,6 @@ import (
 	"cw/config"
 	"cw/models"
 	"fmt"
-	"log"
 	"math"
 	"math/rand"
 	"sync"
@@ -48,17 +47,18 @@ func WithdrawFactory(addresses []string) ([]models.WithdrawAction, error) {
 }
 
 func withdrawActionInit(address string) *models.WithdrawAction {
-	// chain := getRandomChain(config.WithdrawCfg.Chain)
-	log.Printf("1111 %v", config.WithdrawCfg)
+	chain := getRandomChain(config.WithdrawCfg.Chain)
 	currency := getRandomChain(config.WithdrawCfg.Currency)
 	amount := getRandomAmount(config.WithdrawCfg.AmountRange)
+	time := getRandomAmount(config.WithdrawCfg.TimeRange)
 
 	return &models.WithdrawAction{
-		Address: address,
-		CEX:     config.WithdrawCfg.CEX,
-		// Chain:    chain,
-		Currency: currency,
-		Amount:   amount,
+		Address:   address,
+		CEX:       config.WithdrawCfg.CEX,
+		Chain:     chain,
+		Currency:  currency,
+		Amount:    amount,
+		TimeRange: time,
 	}
 }
 
@@ -67,23 +67,22 @@ func getRandomChain(chains []string) string {
 }
 
 func getRandomAmount(amountArr []float64) float64 {
-	if len(amountArr) == 0 {
+	switch len(amountArr) {
+	case 0:
 		return 0
-	}
-
-	if len(amountArr) == 1 {
+	case 1:
 		return amountArr[0]
-	}
+	default:
+		min, max := amountArr[0], amountArr[1]
+		if min > max {
+			min, max = max, min
+		}
 
-	min, max := amountArr[0], amountArr[1]
-	if min > max {
-		min, max = max, min
-	}
+		if min == max {
+			return min
+		}
 
-	if min == max {
-		return min
+		randoValue := min + rand.Float64()*(max-min)
+		return math.Round(randoValue*100) / 100
 	}
-
-	randoValue := min + rand.Float64()*(max-min)
-	return math.Round(randoValue*100) / 100
 }
