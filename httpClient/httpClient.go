@@ -13,8 +13,6 @@ import (
 	"time"
 )
 
-// var GlobalHttpClient HttpClient
-
 type HttpClient struct {
 	Client *http.Client
 }
@@ -31,17 +29,16 @@ func NewHttpClient(opts ...Option) (*HttpClient, error) {
 	for _, opt := range opts {
 		opt(client)
 	}
-	// GlobalHttpClient = *client
 	return client, nil
 }
 
-func (h *HttpClient) SendJSONRequest(urlRequest, method string, reqBody, respBody interface{}) error {
+// Метод для запросов с JSON-ответом (как и раньше)
+func (h *HttpClient) SendJSONRequest(urlRequest, method string, reqBody, respBody interface{}, headers map[string]string) error {
 	req, err := h.createRequest(urlRequest, method, reqBody)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %v", err)
 	}
-
-	return h.executeWithRetries(req, respBody)
+	return h.executeWithRetries(req, respBody, headers)
 }
 
 func (h *HttpClient) createRequest(urlRequest, method string, reqBody interface{}) (*http.Request, error) {
@@ -62,13 +59,18 @@ func (h *HttpClient) createRequest(urlRequest, method string, reqBody interface{
 	if reqBody != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	h.setHeaders(req)
+
 	return req, nil
 }
 
-func (h *HttpClient) executeWithRetries(req *http.Request, respBody interface{}) error {
+func (h *HttpClient) executeWithRetries(req *http.Request, respBody interface{}, headers map[string]string) error {
+
 	const maxRetries = 3
 	const retryDelay = 1500 * time.Millisecond
+
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
 
 	for attempts := 0; attempts < maxRetries; attempts++ {
 		resp, err := h.Client.Do(req)
@@ -90,20 +92,18 @@ func (h *HttpClient) executeWithRetries(req *http.Request, respBody interface{})
 			}
 			return err
 		}
-
 		return nil
 	}
-
 	return fmt.Errorf("request failed after %d retries", maxRetries)
 }
 
 func (h *HttpClient) parseResponse(resp *http.Response, respBody interface{}) error {
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body) // Ignoring read error to avoid masking original status code
+		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	reader := io.ReadCloser(resp.Body)
+	var reader io.ReadCloser = resp.Body
 	defer reader.Close()
 
 	if resp.Header.Get("Content-Encoding") == "gzip" {

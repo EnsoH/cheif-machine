@@ -1,28 +1,23 @@
 package httpClient
 
-import (
-	"fmt"
-	"math/rand"
-	"net/http"
-)
+// func (h *HttpClient) setHeaders(req *http.Request) {
+// 	params := url.Values{}
+// 	params.Add("accountType", "FUND")
+// 	params.Add("coin", token)
 
-func (h *HttpClient) setHeaders(req *http.Request) {
-	// userAgent := h.getRandomUserAgent()
-	// secChUa, platform := h.getSecChUa(userAgent)
+// 	timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
+// 	queryString := params.Encode()
+// 	preSign := timestamp + b.API_key + "5000" + queryString
+// 	// Создание HMAC-SHA256 подписи
+// 	h = hmac.New(sha256.New, []byte(b.API_secret))
+// 	h.Write([]byte(preSign))
+// 	signature := hex.EncodeToString(h.Sum(nil))
 
-	// req.Header.Set("User-Agent", userAgent)
-	req.Header.Set("accept", "*/*")
-	req.Header.Set("accept-language", "en-US,en;q=0.9,"+fmt.Sprintf("q=%.1f", 0.5+rand.Float32()/2))
-	req.Header.Set("priority", "u=1, i")
-	// req.Header.Set("sec-ch-ua", secChUa)
-	req.Header.Set("sec-ch-ua-mobile", "?0")
-	// req.Header.Set("sec-ch-ua-platform", platform)
-	req.Header.Set("sec-fetch-dest", "empty")
-	req.Header.Set("sec-fetch-mode", "cors")
-	req.Header.Set("sec-fetch-site", "cross-site")
-	req.Header.Set("Referrer-Policy", "strict-origin-when-cross-origin")
-	req.Header.Set("Accept-Encoding", "gzip, deflate")
-}
+// 	req.Header.Add("X-BAPI-SIGN", signature)
+// 	req.Header.Add("X-BAPI-API-KEY", b.API_key)
+// 	req.Header.Add("X-BAPI-TIMESTAMP", timestamp)
+// 	req.Header.Add("X-BAPI-RECV-WINDOW", "5000")
+// }
 
 // func (h *HttpClient) getRandomUserAgent() string {
 // r := rand.New(rand.NewSource(time.Now().UnixNano()))
