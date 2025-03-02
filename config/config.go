@@ -8,6 +8,8 @@ import (
 	"os"
 )
 
+// Singltons
+// Configurations for CEX's and wihdraw params
 var Cfg models.Config
 var WithdrawCfg models.WithdrawConfig
 

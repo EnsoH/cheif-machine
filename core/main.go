@@ -7,20 +7,21 @@ import (
 	"cw/modules"
 	"cw/process"
 	"cw/utils"
-	"log"
+	"fmt"
 	"os"
 
 	"github.com/joho/godotenv"
 )
 
 func main() {
+	fmt.Println("START")
 	setENV()
+
 	if err := config.InitConfigs(); err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
-	log.Printf("cfg: %v", config.Cfg)
-	log.Printf("withd: %v", config.WithdrawCfg)
+
 	addrPath, err := utils.GetPath(globals.Addresses)
 	if err != nil {
 		logger.GlobalLogger.Error(err)
@@ -33,21 +34,16 @@ func main() {
 		return
 	}
 
-	actions, err := process.WithdrawFactory(addresses)
-	if err != nil {
-		logger.GlobalLogger.Error(err)
-
-		return
-	}
-
 	modules, err := modules.ModulesInit()
 	if err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
 
-	modules["bybit"].GetPrices("ETH")
-	return
+	if err := process.ActionsProcess(addresses, modules, "bybit"); err != nil {
+		logger.GlobalLogger.Error(err)
+		return
+	}
 }
 
 func setENV() string {
