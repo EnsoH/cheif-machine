@@ -3,14 +3,14 @@ package modules
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"cw/config"
 	"cw/httpClient"
 	"cw/logger"
 	"cw/models"
+	"cw/utils"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"net/url"
 	"strconv"
 	"time"
@@ -24,12 +24,21 @@ type BybitModule struct {
 	API_key         string
 	API_secret      string
 	HttpClient      *httpClient.HttpClient
+	BybitEx         *ccxt.Bybit
 }
 
-func NewBybitModule(balanceEndpoint, tickersEndpoint string, apiKey, apiSecret string, hc *httpClient.HttpClient) (*BybitModule, error) {
+func NewBybitModule(balanceEndpoint, tickersEndpoint, apiKey, apiSecret, proxy string, hc *httpClient.HttpClient) (*BybitModule, error) {
 	if balanceEndpoint == "" || tickersEndpoint == "" {
-		return nil, fmt.Errorf("Missing bybit api endpoint. Check config.")
+		return nil, fmt.Errorf("missing bybit api endpoint, check config")
 	}
+
+	bybit := ccxt.NewBybit(map[string]interface{}{
+		"apiKey":          apiKey,
+		"secret":          apiSecret,
+		"enableRateLimit": true,
+		"proxy":           config.Cfg.IpAddresses[0],
+	})
+	bybit.HttpProxy = proxy
 
 	return &BybitModule{
 		BalanceEndpoint: balanceEndpoint,
@@ -37,107 +46,77 @@ func NewBybitModule(balanceEndpoint, tickersEndpoint string, apiKey, apiSecret s
 		API_key:         apiKey,
 		API_secret:      apiSecret,
 		HttpClient:      hc,
+		BybitEx:         &bybit,
 	}, nil
 }
 
 func (b *BybitModule) Withdraw(token, address, network string, amount float64) error {
-	exchange := ccxt.NewBybit(map[string]interface{}{
-		"apiKey":          b.API_key,
-		"secret":          b.API_secret,
-		"enableRateLimit": true,
-	})
+	str := strconv.FormatFloat(amount, 'f', 6, 64)
+	result, _ := strconv.ParseFloat(str, 64)
 
-	tx, err := exchange.Withdraw(
+	tx, err := b.BybitEx.Withdraw(
 		token,
-		amount,
+		result,
 		address,
-		ccxt.WithWithdrawParams(map[string]interface{}{
+		ccxt.WithdrawOptions(ccxt.WithWithdrawParams(map[string]interface{}{
 			"forceChain": 1,
 			"network":    network,
-		}),
+		})),
 	)
 
 	if err != nil {
-		logger.GlobalLogger.Error(err)
+		log.Println("Ошибка при выводе средств:", err)
 		return err
 	}
 
-	logger.GlobalLogger.Infof("[%s] Withdraw %d successful. Chain %s. TxId: %v", address, amount, network, tx.TxId)
+	logger.GlobalLogger.Infof("[%s] Withdraw %s успешен. Chain %s. Amount %f TxId: %v", address, token, network, amount, tx.TxId)
 	return nil
 }
 
-func (b *BybitModule) GetBalances(token string) error {
-	baseURL := "https://api.bybit.com"
-	endpoint := "/v5/asset/transfer/query-account-coins-balance"
+func (b *BybitModule) GetBalances(token string) (float64, error) {
+	reqURL := fmt.Sprintf(b.BalanceEndpoint, token)
+	headers := createHeaders(token, b.API_key, b.API_secret)
 
-	// Параметры запроса
+	var resp *models.BybitBalanceResponse
+	if err := b.HttpClient.SendJSONRequest(reqURL, "GET", nil, &resp, headers); err != nil {
+		return 0.0, err
+	}
+
+	return utils.СonvertStringToFloat(resp.Result.Balance[0].WalletBalance)
+}
+
+func (b *BybitModule) GetPrices(token string) (float64, error) {
+	if token == "USDT" || token == "USDC" {
+		return 1.0, nil
+	}
+
+	var resp *models.BybitTickerResponse
+	if err := b.HttpClient.SendJSONRequest(fmt.Sprintf("%s?category=spot&symbol=%sUSDT", b.TickersEndpoint, token), "GET", nil, &resp, map[string]string{}); err != nil {
+		logger.GlobalLogger.Error(err)
+		return 0.0, err
+	}
+
+	return utils.СonvertStringToFloat(resp.Result.List[0].LastPrice)
+}
+
+func createHeaders(token, api_key, api_secret string) map[string]string {
 	params := url.Values{}
 	params.Add("accountType", "FUND")
 	params.Add("coin", token)
+	queryString := params.Encode()
 
 	timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
-
-	queryString := params.Encode()
-	preSign := timestamp + b.API_key + "5000" + queryString
-	// Создание HMAC-SHA256 подписи
-	h := hmac.New(sha256.New, []byte(b.API_secret))
+	preSign := timestamp + api_key + "5000" + queryString
+	h := hmac.New(sha256.New, []byte(api_secret))
 	h.Write([]byte(preSign))
 	signature := hex.EncodeToString(h.Sum(nil))
 
-	// Создание URL с параметрами
-	reqURL := fmt.Sprintf("%s%s?%s", baseURL, endpoint, queryString)
-
-	// Создание HTTP-запроса
-	req, err := http.NewRequest("GET", reqURL, nil)
-	if err != nil {
-		fmt.Println("Ошибка создания запроса:", err)
-		return err
+	headers := map[string]string{
+		"X-BAPI-SIGN":        signature,
+		"X-BAPI-API-KEY":     api_key,
+		"X-BAPI-TIMESTAMP":   timestamp,
+		"X-BAPI-RECV-WINDOW": "5000",
 	}
 
-	// Добавление заголовков
-	req.Header.Add("X-BAPI-SIGN", signature)
-	req.Header.Add("X-BAPI-API-KEY", b.API_key)
-	req.Header.Add("X-BAPI-TIMESTAMP", timestamp)
-	req.Header.Add("X-BAPI-RECV-WINDOW", "5000")
-
-	transport := &http.Transport{}
-	proxy, err := url.Parse("http://yylmmudz:crab3o3p9lu0@45.146.30.136:6640")
-	if err != nil {
-		return err
-	}
-	transport.Proxy = http.ProxyURL(proxy)
-	// Отправка запроса
-	client := &http.Client{
-		Transport: transport,
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("Ошибка отправки запроса:", err)
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Чтение ответа
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Ошибка чтения ответа:", err)
-		return err
-	}
-
-	// Вывод ответа
-	log.Printf("bal: %v", string(body))
-
-	return nil
-}
-
-func (b *BybitModule) GetPrices(token string) error {
-	url := fmt.Sprintf("%s?category=spot&symbol=%sUSDT", b.TickersEndpoint, token)
-
-	var resp *models.BybitTickerResponse
-	if err := b.HttpClient.SendJSONRequest(url, "GET", nil, &resp); err != nil {
-		logger.GlobalLogger.Error(err)
-		return err
-	}
-	logger.GlobalLogger.Infof("price: %v", resp.Result.List[0].LastPrice)
-	return nil
+	return headers
 }
