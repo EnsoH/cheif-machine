@@ -1,5 +1,8 @@
 package models
 
+// ##############################
+// ######### APP CONFIG #########
+// ##############################
 type Config struct {
 	Threads     int       `json:"threads"`
 	IpAddresses []string  `json:"ip_addresses"`
@@ -7,9 +10,13 @@ type Config struct {
 }
 
 type CexConfig struct {
-	BybitCfg Bybit `json:"bybit"`
+	BybitCfg   Bybit   `json:"bybit"`
+	BinanceCfg Binance `json:"binance"`
 }
 
+// ##############################
+// ######### CEX CONFIG ########
+// ##############################
 type Bybit struct {
 	API_key         string `json:"api_key"`
 	API_secret      string `json:"secret_key"`
@@ -17,6 +24,14 @@ type Bybit struct {
 	TickersEndpoint string `json:"tickers_endpoint"`
 }
 
+type Binance struct {
+	API_key    string `json:"api_key"`
+	API_secret string `json:"secret_key"`
+}
+
+// ##############################
+// ############ WITHDRAW OPTIONS ###########
+// ##############################
 type WithdrawConfig struct {
 	CEX         string    `json:"cex"`
 	Chain       []string  `json:"chain"`
@@ -34,6 +49,9 @@ type WithdrawAction struct {
 	TimeRange float64
 }
 
+// ##############################
+// ####### RESPONSE SHEMES #########
+// ##############################
 type BybitTickerResponse struct {
 	Result struct {
 		List []struct {
