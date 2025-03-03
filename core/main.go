@@ -34,13 +34,13 @@ func main() {
 		return
 	}
 
-	modules, err := modules.ModulesInit()
+	exchange, err := modules.ModulesInit("binance", "bybit") // for example we init 2 cex
 	if err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
 
-	if err := process.ActionsProcess(addresses, modules, "bybit"); err != nil {
+	if err := process.ActionsProcess(addresses, *exchange, "bybit"); err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
