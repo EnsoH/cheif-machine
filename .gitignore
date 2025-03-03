@@ -1,2 +1,5 @@
 **/*.dev.*
 .env
+/ccxtTodo
+/1
+/logs.txt
