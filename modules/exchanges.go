@@ -4,7 +4,6 @@ import (
 	"cw/httpClient"
 	"cw/logger"
 	"fmt"
-	"log"
 	"strconv"
 )
 
@@ -32,15 +31,13 @@ func (e *Exchanges) Withdraw(cexName, token, address, network string, amount flo
 	str := strconv.FormatFloat(amount, 'f', 6, 64)
 	convertAmount, _ := strconv.ParseFloat(str, 64)
 
-	cex, ok := e.CEXs[cexName]
-	if !ok {
-		return fmt.Errorf("failed to get cex from adapters")
+	cex, err := e.getCEX(cexName)
+	if err != nil {
+		return err
 	}
 
 	tx, err := cex.Withdraw(token, address, network, convertAmount)
-
 	if err != nil {
-		log.Println("Ошибка при выводе средств:", err)
 		return err
 	}
 
@@ -49,9 +46,9 @@ func (e *Exchanges) Withdraw(cexName, token, address, network string, amount flo
 }
 
 func (e *Exchanges) GetBalances(cexName, token string) (float64, error) {
-	cex, ok := e.CEXs[cexName]
-	if !ok {
-		return 0, fmt.Errorf("failed to get cex from adapters")
+	cex, err := e.getCEX(cexName)
+	if err != nil {
+		return 0, nil
 	}
 
 	bal, err := cex.GetBalance(token)
@@ -69,9 +66,9 @@ func (e *Exchanges) GetBalances(cexName, token string) (float64, error) {
 }
 
 func (e *Exchanges) GetPrices(cexName, token string) (float64, error) {
-	cex, ok := e.CEXs[cexName]
-	if !ok {
-		return 0, fmt.Errorf("failed to get cex from adapters")
+	cex, err := e.getCEX(cexName)
+	if err != nil {
+		return 0, nil
 	}
 
 	if token == "USDT" || token == "USDC" {
@@ -87,6 +84,9 @@ func (e *Exchanges) GetPrices(cexName, token string) (float64, error) {
 	return price, nil
 }
 
-// func (ex *Exchange) getExchange() {
-
-// }
+func (e *Exchanges) getCEX(cexName string) (ExchangeModule, error) {
+	if cex, ok := e.CEXs[cexName]; ok {
+		return cex, nil
+	}
+	return nil, fmt.Errorf("failed to get cex from adapters")
+}
