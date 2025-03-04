@@ -7,14 +7,12 @@ import (
 	"cw/modules"
 	"cw/process"
 	"cw/utils"
-	"fmt"
 	"os"
 
 	"github.com/joho/godotenv"
 )
 
 func main() {
-	fmt.Println("START")
 	setENV()
 
 	if err := config.InitConfigs(); err != nil {
@@ -34,13 +32,19 @@ func main() {
 		return
 	}
 
-	exchange, err := modules.ModulesInit("binance", "bybit") // for example we init 2 cex
+	exchange, err := modules.ModulesInit(config.WithdrawCfg.CEX) // for example we init 2 cex
 	if err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
 
-	if err := process.ActionsProcess(addresses, *exchange, "bybit"); err != nil {
+	// bin, err := exchange.GetBalances("binance", "USDT")
+	// if err != nil {
+	// 	logger.GlobalLogger.Error(err)
+	// 	return
+	// }
+	// log.Printf("bal %.11f", bin)
+	if err := process.ActionsProcess(addresses, *exchange, config.WithdrawCfg.CEX); err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
