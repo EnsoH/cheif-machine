@@ -33,6 +33,9 @@ func withBinance() Option {
 			"apiKey":          config.Cfg.CEXConfigs.BinanceCfg.API_key,
 			"secret":          config.Cfg.CEXConfigs.BinanceCfg.API_secret,
 			"enableRateLimit": true,
+			"options": map[string]interface{}{
+				"defaultType": "spot",
+			},
 		})
 		binance.HttpProxy = config.Cfg.IpAddresses[0]
 		e.CEXs["binance"] = &exchangeAdapters.BinanceAdapter{Client: &binance}

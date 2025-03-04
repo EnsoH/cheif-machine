@@ -18,7 +18,7 @@ func (b *BinanceAdapter) Withdraw(token, address, network string, amount float64
 
 func (b *BinanceAdapter) GetBalance(symbol string) (ccxt.Balances, error) {
 	return b.Client.FetchBalance(map[string]interface{}{
-		"type": "funding",
+		"type": "spot",
 	})
 }
 
