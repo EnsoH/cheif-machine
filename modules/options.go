@@ -11,6 +11,7 @@ import (
 var optionsMap = map[string]Option{
 	"bybit":   withBybit(),
 	"binance": withBinance(),
+	"mexc":    withMexc(),
 }
 
 type Option func(*Exchanges)
@@ -39,6 +40,18 @@ func withBinance() Option {
 		})
 		binance.HttpProxy = config.Cfg.IpAddresses[0]
 		e.CEXs["binance"] = &exchangeAdapters.BinanceAdapter{Client: &binance}
+	}
+}
+
+func withMexc() Option {
+	return func(e *Exchanges) {
+		mexc := ccxt.NewMexc(map[string]interface{}{
+			"apiKey":          config.Cfg.CEXConfigs.MexcCfg.API_key,
+			"secret":          config.Cfg.CEXConfigs.MexcCfg.API_secret,
+			"enableRateLimit": true,
+		})
+		mexc.HttpProxy = config.Cfg.IpAddresses[0]
+		e.CEXs["mexc"] = &exchangeAdapters.MexcAdapter{Client: &mexc}
 	}
 }
 

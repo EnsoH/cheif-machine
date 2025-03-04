@@ -1,7 +1,9 @@
 package exchangeAdapters
 
 import (
+	"cw/logger"
 	"fmt"
+	"log"
 
 	ccxt "github.com/ccxt/ccxt/go/v4"
 )
@@ -29,4 +31,29 @@ func (b *BinanceAdapter) GetPrices(symbol string) (float64, error) {
 		return 0, err
 	}
 	return *ticker.Last, nil
+}
+
+type ChainInfo struct {
+	ChainId        string  // идентификатор сети
+	WithdrawEnable bool    // возможность вывода
+	WithdrawFee    float64 // комиссия на вывод
+	WithdrawMin    float64 // минимальная сумма для вывода
+}
+
+func (b *BinanceAdapter) GetChains(token string) error {
+	marketsChan := b.Client.LoadMarkets()
+	result := <-marketsChan
+
+	if err, ok := result.(error); ok && err != nil {
+		logger.GlobalLogger.Error(fmt.Sprintf("failed to load markets: %+v", err))
+		return fmt.Errorf("failed to load markets: %w", err)
+	}
+
+	curRaw, ok := b.Client.Currencies[token]
+	if !ok {
+		return fmt.Errorf("token %s not found", token)
+	}
+
+	log.Printf("info: %v", curRaw)
+	return nil
 }

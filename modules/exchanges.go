@@ -84,6 +84,16 @@ func (e *Exchanges) GetPrices(cexName, token string) (float64, error) {
 	return price, nil
 }
 
+func (e *Exchanges) GetChains(cexName, token string) error {
+	cex, err := e.getCEX(cexName)
+	if err != nil {
+		return err
+	}
+
+	return cex.GetChains(token)
+
+}
+
 func (e *Exchanges) getCEX(cexName string) (ExchangeModule, error) {
 	if cex, ok := e.CEXs[cexName]; ok {
 		return cex, nil

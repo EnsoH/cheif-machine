@@ -12,6 +12,7 @@ type ExchangeModule interface {
 	Withdraw(token, address, network string, amount float64) (ccxt.Transaction, error)
 	GetBalance(symbol string) (ccxt.Balances, error)
 	GetPrices(token string) (float64, error)
+	GetChains(token string) error // TODO: реализовать получение списка сетей.
 }
 
 // Factory for future scaling using massive simultaneous output from multiple exchanges for more efficient initialisation.

@@ -38,12 +38,6 @@ func main() {
 		return
 	}
 
-	// bin, err := exchange.GetBalances("binance", "USDT")
-	// if err != nil {
-	// 	logger.GlobalLogger.Error(err)
-	// 	return
-	// }
-	// log.Printf("bal %.11f", bin)
 	if err := process.ActionsProcess(addresses, *exchange, config.WithdrawCfg.CEX); err != nil {
 		logger.GlobalLogger.Error(err)
 		return

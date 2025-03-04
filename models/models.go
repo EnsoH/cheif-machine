@@ -12,6 +12,7 @@ type Config struct {
 type CexConfig struct {
 	BybitCfg   Bybit   `json:"bybit"`
 	BinanceCfg Binance `json:"binance"`
+	MexcCfg    Mexc    `json:"mexc"`
 }
 
 // ##############################
@@ -25,6 +26,11 @@ type Bybit struct {
 }
 
 type Binance struct {
+	API_key    string `json:"api_key"`
+	API_secret string `json:"secret_key"`
+}
+
+type Mexc struct {
 	API_key    string `json:"api_key"`
 	API_secret string `json:"secret_key"`
 }
