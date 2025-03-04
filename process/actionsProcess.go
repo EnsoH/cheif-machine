@@ -21,6 +21,8 @@ func ActionsProcess(addresses []string, exchange modules.Exchanges, cex string) 
 		return err
 	}
 
+	loggingActions(actions)
+
 	return withdrawProcess(actions, exchange, cex)
 }
 
@@ -38,7 +40,7 @@ func withdrawProcess(actions []models.WithdrawAction, exchange modules.Exchanges
 				return err
 			}
 
-			logger.GlobalLogger.Infof("Sleep before withdraw %v", act.TimeRange)
+			logger.GlobalLogger.Infof("[%s] Sleep before withdraw %v", act.Address, act.TimeRange)
 			time.Sleep(time.Second * time.Duration(act.TimeRange))
 			return exchange.Withdraw(cex, act.Currency, act.Address, act.Chain, amount)
 		})
