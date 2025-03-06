@@ -52,9 +52,11 @@ func (b *BinanceAdapter) GetChains(token, withdrawChain string) (*models.ChainLi
 	var chainParams models.ChainList
 	for _, param := range curParse.Networks {
 		if param.Network == withdrawChain {
-			chainParams.Chain = param.Id
-			if fee, err := utils.ConvertToFloat(param.Fee); err == nil {
-				chainParams.WithdrawFee = fee
+			if !param.Info.Busy {
+				chainParams.Chain = param.Id
+				if fee, err := utils.ConvertToFloat(param.Fee); err == nil {
+					chainParams.WithdrawFee = fee
+				}
 			}
 		}
 	}
