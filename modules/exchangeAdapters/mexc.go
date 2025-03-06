@@ -1,9 +1,9 @@
 package exchangeAdapters
 
 import (
-	"cw/logger"
+	"cw/models"
+	"cw/utils"
 	"fmt"
-	"log"
 
 	ccxt "github.com/ccxt/ccxt/go/v4"
 )
@@ -31,20 +31,33 @@ func (m *MexcAdapter) GetPrices(symbol string) (float64, error) {
 	return *ticker.Last, nil
 }
 
-func (m *MexcAdapter) GetChains(token string) error {
-	marketsChan := m.Client.LoadMarkets()
-	result := <-marketsChan
-
+func (m *MexcAdapter) GetChains(token, withdrawChain string) (*models.ChainList, error) {
+	result := <-m.Client.LoadMarkets()
 	if err, ok := result.(error); ok && err != nil {
-		logger.GlobalLogger.Error(fmt.Sprintf("failed to load markets: %+v", err))
-		return fmt.Errorf("failed to load markets: %w", err)
+		return nil, fmt.Errorf("failed to load markets: %w", err)
 	}
 
-	curRaw, ok := m.Client.Currencies[token]
-	if !ok {
-		return fmt.Errorf("token %s not found", token)
+	curRaw, exists := m.Client.Currencies[token]
+	if !exists {
+		return nil, fmt.Errorf("token %s not found", token)
 	}
 
-	log.Printf("info: %v", curRaw)
-	return nil
+	var curParse *models.MexcCurrencyList
+	if err := utils.ResponseConvert(curRaw, &curParse); err != nil {
+		return nil, err
+	}
+	// log.Printf("currs: %+v", curParse)
+	var chainParams models.ChainList
+	for _, param := range curParse.Networks {
+		if param.Info.NetWork == withdrawChain {
+			if param.Active {
+				chainParams.Chain = param.Info.NetWork
+				if withdrawMin, err := utils.ConvertToFloat(param.Info.WithdrawFee); err == nil {
+					chainParams.WithdrawFee = withdrawMin
+				}
+			}
+		}
+	}
+
+	return &chainParams, nil
 }

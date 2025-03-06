@@ -1,8 +1,9 @@
 package exchangeAdapters
 
 import (
+	"cw/models"
+	"cw/utils"
 	"fmt"
-	"log"
 
 	ccxt "github.com/ccxt/ccxt/go/v4"
 )
@@ -25,26 +26,48 @@ func (ba *BybitAdapter) GetBalance(symbol string) (ccxt.Balances, error) {
 }
 
 func (ba *BybitAdapter) GetPrices(symbol string) (float64, error) {
-	ba.Client.LoadMarkets()
+	if result := <-ba.Client.LoadMarkets(); result != nil {
+		if err, ok := result.(error); ok && err != nil {
+			return 0, fmt.Errorf("failed to load markets: %w", err)
+		}
+	}
+
 	ticker, err := ba.Client.FetchTicker(fmt.Sprintf("%s/USDT", symbol))
 	if err != nil {
 		return 0, err
 	}
+	if ticker.Last == nil {
+		return 0, fmt.Errorf("ticker last price is nil")
+	}
 	return *ticker.Last, nil
 }
 
-func (b *BybitAdapter) GetChains(token string) error {
-	// Загружаем рынки
-	if err := b.Client.LoadMarkets(); err != nil {
-		return fmt.Errorf("failed to load markets: %v", err)
+func (b *BybitAdapter) GetChains(token, withdrawChain string) (*models.ChainList, error) {
+	result := <-b.Client.LoadMarkets()
+	if err, ok := result.(error); ok && err != nil {
+		return nil, fmt.Errorf("failed to load markets: %w", err)
 	}
 
-	// Получаем данные о валюте по токену
-	curRaw, ok := b.Client.Currencies[token]
-	if !ok {
-		return fmt.Errorf("token %s not found", token)
+	curRaw, exists := b.Client.Currencies[token]
+	if !exists {
+		return nil, fmt.Errorf("token %s not found", token)
 	}
 
-	log.Printf("info: %v", curRaw)
-	return nil
+	var curParse *models.BybitCurrencyList
+	if err := utils.ResponseConvert(curRaw, &curParse); err != nil {
+		return nil, err
+	}
+
+	var chainParams models.ChainList
+	for _, param := range curParse.Info.Chains {
+		// log.Printf("chain:%+v", chain.ChainType)
+		if param.ChainType == withdrawChain {
+			chainParams.Chain = param.Chain
+			if withdrawMin, err := utils.ConvertToFloat(param.WithdrawMin); err == nil {
+				chainParams.WithdrawFee = withdrawMin
+			}
+		}
+	}
+
+	return &chainParams, nil
 }
