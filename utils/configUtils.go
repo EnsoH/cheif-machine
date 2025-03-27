@@ -10,10 +10,15 @@ import (
 func GetPath(path string) (string, error) {
 	env := os.Getenv("ENV")
 	basePath := map[string]string{
-		globals.Configuration: "config/data/configuration.json",
-		globals.Withdraw:      "config/data/withdraw_configuration.json",
-		globals.Proxy:         "account/proxy.txt",
-		globals.Addresses:     "config/data/withdraw_addresses.txt",
+		globals.AppConfiguration: "config/data/configuration.json",
+		globals.UserConfig:       "config/data/user_config.json",
+		globals.Addresses:        "config/data/withdraw_addresses.txt",
+		// globals.Withdraw:         "config/data/withdraw_configuration.json",
+		// globals.Proxy:            "account/proxy.txt",
+		// globals.PrivateKeys:      "config/data/private_keys.txt",
+		// globals.Bridge:       "config/data/bridge_configuration.json",
+		// globals.WallGen:      "config/data/wallet_generator.json",
+		// globals.Destinations: "config/data/destination_address.json",
 	}
 
 	// Проверяем, существует ли путь

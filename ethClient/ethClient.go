@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"math/big"
 
-	// "cw/globals"
+	"cw/account"
+	"cw/config"
+	"cw/globals"
 	"cw/logger"
+	"cw/utils"
 	"strings"
 	"sync"
 	"time"
@@ -26,7 +29,6 @@ type EthClient struct {
 	Client *ethclient.Client
 }
 
-// EthClientFactory создает клиентов для всех переданных RPC-узлов.
 func EthClientFactory(rpcs map[string]string) error {
 	if len(rpcs) == 0 {
 		return errors.New("RPC URLs map is empty")
@@ -64,7 +66,6 @@ func EthClientFactory(rpcs map[string]string) error {
 	return nil
 }
 
-// CloseAllClients закрывает все клиенты.
 func CloseAllClients(clients map[string]*EthClient) {
 	for _, client := range clients {
 		if client.Client != nil {
@@ -73,77 +74,111 @@ func CloseAllClients(clients map[string]*EthClient) {
 	}
 }
 
-// BalanceCheck проверяет баланс токена или нативной монеты.
 func (c *EthClient) BalanceCheck(owner, tokenAddr common.Address) (*big.Int, error) {
-	if IsNativeToken(tokenAddr) {
-		return c.Client.BalanceAt(context.Background(), owner, nil)
+	if isNative(tokenAddr) {
+		balance, err := c.Client.BalanceAt(context.Background(), owner, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get native coin balance: %v", err)
+		}
+		return balance, nil
 	}
 
-	// data, err := globals.Erc20ABI.Pack("balanceOf", owner)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to pack data: %v", err)
-	// }
+	data, err := globals.Erc20ABI.Pack("balanceOf", owner)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack data: %v", err)
+	}
 
-	// result, err := c.CallCA(tokenAddr, data)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to call contract: %v", err)
-	// }
+	result, err := c.CallCA(tokenAddr, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call contract: %v", err)
+	}
 
-	// var balance *big.Int
-	// if err := globals.Erc20ABI.UnpackIntoInterface(&balance, "balanceOf", result); err != nil {
-	// 	return nil, fmt.Errorf("failed to unpack result: %v", err)
-	// }
+	if len(result) == 0 {
+		return nil, fmt.Errorf("empty response from ERC-20 contract")
+	}
 
-	// return balance, nil
-	return nil, nil
+	var balance *big.Int
+	if err := globals.Erc20ABI.UnpackIntoInterface(&balance, "balanceOf", result); err != nil {
+		return nil, fmt.Errorf("failed to unpack result: %v", err)
+	}
+
+	return balance, nil
 }
 
-// CallCA выполняет вызов контракта.
+func (c *EthClient) GetDecimals(token common.Address) (uint8, error) {
+	if isNative(token) {
+		return 18, nil
+	}
+
+	data, err := globals.Erc20ABI.Pack("decimals")
+	if err != nil {
+		return 0, err
+	}
+
+	result, err := c.CallCA(token, data)
+	if err != nil {
+		return 0, fmt.Errorf("failed to call contract: %v", err)
+	}
+
+	var decimals uint8
+	if err := globals.Erc20ABI.UnpackIntoInterface(&decimals, "decimals", result); err != nil {
+		return 0, fmt.Errorf("failed to unpack result: %v", err)
+	}
+
+	return decimals, nil
+}
+
 func (c *EthClient) CallCA(toCA common.Address, data []byte) ([]byte, error) {
-	callMsg := ethereum.CallMsg{To: &toCA, Data: data}
+	callMsg := ethereum.CallMsg{
+		To:   &toCA,
+		Data: data,
+	}
+
 	return c.Client.CallContract(context.Background(), callMsg, nil)
 }
 
-// GetGasValues оценивает лимит газа и комиссии.
 func (c *EthClient) GetGasValues(msg ethereum.CallMsg) (uint64, *big.Int, *big.Int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-
-	ticker := time.NewTicker(5 * time.Second)
+	timeout := time.After(time.Duration(5) * time.Minute)
+	ticker := time.NewTicker(time.Second * time.Duration(5))
 	defer ticker.Stop()
 
 	for {
 		select {
-		case <-ctx.Done():
-			return 0, nil, nil, fmt.Errorf("gas wait timeout exceeded")
+		case <-timeout:
+			// logger.GlobalLogger.Errorf("Gas wait timeout has been exceeded. Cycle interrupted.")
+			return 0, big.NewInt(0), big.NewInt(0), fmt.Errorf("gas wait timeout has been exceeded, сycle interrupted")
 
 		case <-ticker.C:
 			header, err := c.Client.HeaderByNumber(context.Background(), nil)
 			if err != nil {
-				return 0, nil, nil, fmt.Errorf("error fetching block header: %w", err)
+				// logger.GlobalLogger.Errorf("Ошибка получения заголовка блока: %v", err)
+				return 0, nil, nil, fmt.Errorf("ошибка получения заголовка блока: %w", err)
 			}
 
-			tipCap, err := c.Client.SuggestGasTipCap(context.Background())
+			maxPriorityFeePerGas, err := c.Client.SuggestGasTipCap(context.Background())
 			if err != nil {
-				return 0, nil, nil, fmt.Errorf("error suggesting gas tip cap: %w", err)
+				// logger.GlobalLogger.Errorf("Ошибка получения предложения Gas Tip Cap: %v", err)
+				return 0, nil, nil, fmt.Errorf("ошибка получения предложения Gas Tip Cap: %w", err)
 			}
 
-			feeCap := new(big.Int).Add(header.BaseFee, tipCap)
+			maxFeePerGas := new(big.Int).Add(header.BaseFee, maxPriorityFeePerGas)
+
 			gasLimit, err := c.Client.EstimateGas(context.Background(), msg)
 			if err != nil {
-				return 0, nil, nil, fmt.Errorf("gas estimation error: %w", err)
+				// logger.GlobalLogger.Errorf("Ошибка оценки газа: %v", err)
+				return 0, nil, nil, fmt.Errorf("ошибка оценки газа: %w", err)
 			}
 
-			if feeCap.Cmp(big.NewInt(100_000_000_000)) > 0 {
-				logger.GlobalLogger.Warnf("High gwei detected: %v", feeCap)
+			if maxFeePerGas.Cmp(big.NewInt(3000000000)) > 0 {
+				logger.GlobalLogger.Warnf("[ATTENTION] High gwei %v", maxFeePerGas)
 				continue
+			} else {
+				return gasLimit, maxPriorityFeePerGas, maxFeePerGas, nil
 			}
-			return gasLimit, tipCap, feeCap, nil
 		}
 	}
 }
 
-// GetNonce получает nonce для транзакции.
 func (c *EthClient) GetNonce(address common.Address) uint64 {
 	nonce, err := c.Client.PendingNonceAt(context.Background(), address)
 	if err != nil {
@@ -153,21 +188,81 @@ func (c *EthClient) GetNonce(address common.Address) uint64 {
 	return nonce
 }
 
-// GetChainID получает ChainID сети.
-func (c *EthClient) GetChainID() (*big.Int, error) {
-	return c.Client.NetworkID(context.Background())
+func (c *EthClient) GetChainID() (int64, error) {
+	chainID, err := c.Client.NetworkID(context.Background())
+	if err != nil {
+		return 0, fmt.Errorf("failed to get ChainID: %w", err)
+	}
+	return chainID.Int64(), nil
 }
 
-// SendTransaction отправляет транзакцию.
-func (c *EthClient) SendTransaction(privateKey *ecdsa.PrivateKey, ownerAddr, to common.Address, nonce uint64, value *big.Int, txData []byte) error {
-	chainID, err := c.GetChainID()
+func (c *EthClient) ApproveTx(tokenAddr, spender common.Address, acc *account.Account, amount *big.Int, rollback bool) (*types.Transaction, error) {
+	if isNative(tokenAddr) {
+		return nil, nil
+	}
+
+	allowance, err := c.Allowance(tokenAddr, acc.Address, spender)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get allowance: %v", err)
+	}
+
+	var approveValue *big.Int
+	if rollback {
+		approveValue = big.NewInt(0)
+	} else {
+		if allowance.Cmp(amount) >= 0 {
+			return nil, nil
+		}
+		approveValue = globals.MaxApproveValue
+	}
+
+	approveData, err := globals.Erc20ABI.Pack("approve", spender, approveValue)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack approve data: %v", err)
+	}
+
+	logger.GlobalLogger.Infof("Approve transaction...")
+	if err := c.SendTransaction(acc.PrivateKey, acc.Address, tokenAddr, c.GetNonce(acc.Address), big.NewInt(0), approveData); err != nil {
+		return nil, err
+	}
+
+	time.Sleep(time.Second * 15)
+	return nil, nil
+}
+
+func (c *EthClient) Allowance(tokenAddr, owner, spender common.Address) (*big.Int, error) {
+	data, err := globals.Erc20ABI.Pack("allowance", owner, spender)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack allowance data: %v", err)
+	}
+
+	msg := ethereum.CallMsg{
+		To:   &tokenAddr,
+		Data: data,
+	}
+
+	result, err := c.Client.CallContract(context.Background(), msg, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call contract: %v", err)
+	}
+
+	var allowance *big.Int
+	if err = globals.Erc20ABI.UnpackIntoInterface(&allowance, "allowance", result); err != nil {
+		return nil, fmt.Errorf("failed to unpack allowance data: %v", err)
+	}
+
+	return allowance, nil
+}
+
+func (c *EthClient) SendTransaction(privateKey *ecdsa.PrivateKey, ownerAddr, CA common.Address, nonce uint64, value *big.Int, txData []byte) error {
+	chainID, err := c.Client.NetworkID(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to get ChainID: %v", err)
 	}
 
-	gasLimit, tipCap, feeCap, err := c.GetGasValues(ethereum.CallMsg{
+	gasLimit, maxPriorityFeePerGas, maxFeePerGas, err := c.GetGasValues(ethereum.CallMsg{
 		From:  ownerAddr,
-		To:    &to,
+		To:    &CA,
 		Value: value,
 		Data:  txData,
 	})
@@ -175,31 +270,78 @@ func (c *EthClient) SendTransaction(privateKey *ecdsa.PrivateKey, ownerAddr, to 
 		return fmt.Errorf("failed to estimate gas: %v", err)
 	}
 
-	dynamicTx := &types.DynamicFeeTx{
+	dynamicTx := types.DynamicFeeTx{
 		ChainID:   chainID,
 		Nonce:     nonce,
-		GasTipCap: tipCap,
-		GasFeeCap: feeCap,
+		GasTipCap: maxPriorityFeePerGas,
+		GasFeeCap: maxFeePerGas,
 		Gas:       gasLimit,
-		To:        &to,
+		To:        &CA,
 		Value:     value,
 		Data:      txData,
 	}
 
-	signedTx, err := types.SignTx(types.NewTx(dynamicTx), types.LatestSignerForChainID(chainID), privateKey)
+	signedTx, err := types.SignTx(types.NewTx(&dynamicTx), types.LatestSignerForChainID(chainID), privateKey)
 	if err != nil {
 		return fmt.Errorf("failed to sign transaction: %v", err)
 	}
 
-	if err = c.Client.SendTransaction(context.Background(), signedTx); err != nil {
-		return fmt.Errorf("failed to send transaction: %v", err)
+	for attemps := 0; attemps < 5; attemps++ {
+		if err = c.Client.SendTransaction(context.Background(), signedTx); err == nil {
+			break
+		} else {
+			errorContext, critical := utils.IsCriticalError(err)
+			if critical {
+				return fmt.Errorf("failed to send transaction: %v", errorContext)
+			}
+		}
 	}
 
-	logger.GlobalLogger.Infof("Transaction sent: https://blockscout.monad.com/tx/%s", signedTx.Hash().Hex())
+	logger.GlobalLogger.Infof("[NONCE: %v] Transaction sent: %s/tx/%s", nonce, globals.ExploerLink[chainID.Int64()], signedTx.Hash().Hex())
+
 	return c.waitForTransactionSuccess(signedTx.Hash(), 1*time.Minute)
 }
 
-// waitForTransactionSuccess ожидает подтверждения транзакции.
+func (c *EthClient) WaitTokenDeposit(chain, token string, accountAddress common.Address) error {
+	chainId, err := c.GetChainID()
+	if err != nil {
+		return fmt.Errorf("ошибка получения chain id, проверка поступления средств отменена: %w", err)
+	}
+
+	tokenContract, ok := globals.TokenContracts[chainId][token]
+	if !ok {
+		return fmt.Errorf("такого токена или сети в софте нет, остановка ожидания депозита на счет")
+	}
+	oldBalance, err := c.BalanceCheck(accountAddress, common.HexToAddress(tokenContract))
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.Cfg.DepositWaitingTime)*time.Minute)
+	defer cancel()
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("deposit waiting timout is closed")
+		case <-ticker.C:
+			currentBalance, err := c.BalanceCheck(accountAddress, common.HexToAddress(tokenContract))
+			if err != nil {
+				return fmt.Errorf("failed to check balance: %w", err)
+			}
+
+			if currentBalance.Cmp(oldBalance) == 0 {
+				continue
+			} else {
+				return nil
+			}
+		}
+	}
+}
+
 func (c *EthClient) waitForTransactionSuccess(txHash common.Hash, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -222,13 +364,13 @@ func (c *EthClient) waitForTransactionSuccess(txHash common.Hash, timeout time.D
 
 			if receipt.Status == 1 {
 				return nil
+			} else {
+				return fmt.Errorf("transaction failed")
 			}
-			return fmt.Errorf("transaction failed")
 		}
 	}
 }
 
-// isUnknownBlockError проверяет известные ошибки.
 func isUnknownBlockError(err error) bool {
 	if err == nil {
 		return false
@@ -237,4 +379,8 @@ func isUnknownBlockError(err error) bool {
 	return strings.Contains(errMsg, "Unknown block") ||
 		strings.Contains(errMsg, "not found") ||
 		strings.Contains(errMsg, "free tier limits")
+}
+
+func isNative(token common.Address) bool {
+	return token == common.Address{}
 }

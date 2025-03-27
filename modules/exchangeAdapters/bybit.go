@@ -1,6 +1,7 @@
 package exchangeAdapters
 
 import (
+	"cw/globals"
 	"cw/models"
 	"cw/utils"
 	"fmt"
@@ -13,9 +14,14 @@ type BybitAdapter struct {
 }
 
 func (ba *BybitAdapter) Withdraw(token, address, network string, amount float64) (ccxt.Transaction, error) {
+	networkName, ok := ba.getNetworkName(network, "bybit")
+	if !ok {
+		return ccxt.Transaction{}, fmt.Errorf("софт не поддерживает вывод в сеть %s с биржи Bybit", network)
+	}
+
 	return ba.Client.Withdraw(token, amount, address, ccxt.WithdrawOptions(ccxt.WithWithdrawParams(map[string]interface{}{
 		"forceChain": 1,
-		"network":    network,
+		"network":    networkName,
 	})))
 }
 
@@ -42,13 +48,18 @@ func (ba *BybitAdapter) GetPrices(symbol string) (float64, error) {
 	return *ticker.Last, nil
 }
 
-func (b *BybitAdapter) GetChains(token, withdrawChain string) (*models.ChainList, error) {
-	result := <-b.Client.LoadMarkets()
+func (ba *BybitAdapter) GetChains(token, withdrawChain string) (*models.ChainList, error) {
+	networkName, ok := ba.getNetworkName(withdrawChain, "bybit")
+	if !ok {
+		return nil, fmt.Errorf("софт не поддерживает вывод в сеть %s с биржи Bybit", withdrawChain)
+	}
+
+	result := <-ba.Client.LoadMarkets()
 	if err, ok := result.(error); ok && err != nil {
 		return nil, fmt.Errorf("failed to load markets: %w", err)
 	}
 
-	curRaw, exists := b.Client.Currencies[token]
+	curRaw, exists := ba.Client.Currencies[token]
 	if !exists {
 		return nil, fmt.Errorf("token %s not found", token)
 	}
@@ -57,11 +68,10 @@ func (b *BybitAdapter) GetChains(token, withdrawChain string) (*models.ChainList
 	if err := utils.ResponseConvert(curRaw, &curParse); err != nil {
 		return nil, err
 	}
-
+	// log.Printf("cur: %+v", curParse)
 	var chainParams models.ChainList
 	for _, param := range curParse.Info.Chains {
-		// log.Printf("chain:%+v", chain.ChainType)
-		if param.ChainType == withdrawChain {
+		if param.ChainType == networkName {
 			chainParams.Chain = param.Chain
 			if withdrawMin, err := utils.ConvertToFloat(param.WithdrawMin); err == nil {
 				chainParams.WithdrawFee = withdrawMin
@@ -70,4 +80,9 @@ func (b *BybitAdapter) GetChains(token, withdrawChain string) (*models.ChainList
 	}
 
 	return &chainParams, nil
+}
+
+func (ba *BybitAdapter) getNetworkName(network, cex string) (string, bool) {
+	name, exists := globals.ChainNameToSymbolCEX[cex][network]
+	return name, exists
 }

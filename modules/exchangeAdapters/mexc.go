@@ -1,6 +1,7 @@
 package exchangeAdapters
 
 import (
+	"cw/globals"
 	"cw/models"
 	"cw/utils"
 	"fmt"
@@ -13,8 +14,13 @@ type MexcAdapter struct {
 }
 
 func (m *MexcAdapter) Withdraw(token, address, network string, amount float64) (ccxt.Transaction, error) {
+	networkName, ok := m.getNetworkName(network, "mexc")
+	if !ok {
+		return ccxt.Transaction{}, fmt.Errorf("софт не поддерживает вывод в сеть %s с биржи Binance", network)
+	}
+
 	return m.Client.Withdraw(token, amount, address, ccxt.WithWithdrawParams(map[string]interface{}{
-		"network": network,
+		"network": networkName,
 	}))
 }
 
@@ -32,6 +38,11 @@ func (m *MexcAdapter) GetPrices(symbol string) (float64, error) {
 }
 
 func (m *MexcAdapter) GetChains(token, withdrawChain string) (*models.ChainList, error) {
+	networkName, ok := m.getNetworkName(withdrawChain, "mexc")
+	if !ok {
+		return nil, fmt.Errorf("софт не поддерживает вывод в сеть %s с биржи Mexc", withdrawChain)
+	}
+
 	result := <-m.Client.LoadMarkets()
 	if err, ok := result.(error); ok && err != nil {
 		return nil, fmt.Errorf("failed to load markets: %w", err)
@@ -46,10 +57,11 @@ func (m *MexcAdapter) GetChains(token, withdrawChain string) (*models.ChainList,
 	if err := utils.ResponseConvert(curRaw, &curParse); err != nil {
 		return nil, err
 	}
+
 	// log.Printf("currs: %+v", curParse)
 	var chainParams models.ChainList
 	for _, param := range curParse.Networks {
-		if param.Info.NetWork == withdrawChain {
+		if param.Info.NetWork == networkName {
 			if param.Active {
 				chainParams.Chain = param.Info.NetWork
 				if withdrawMin, err := utils.ConvertToFloat(param.Info.WithdrawFee); err == nil {
@@ -60,4 +72,9 @@ func (m *MexcAdapter) GetChains(token, withdrawChain string) (*models.ChainList,
 	}
 
 	return &chainParams, nil
+}
+
+func (m *MexcAdapter) getNetworkName(network, cex string) (string, bool) {
+	name, exists := globals.ChainNameToSymbolCEX[cex][network]
+	return name, exists
 }

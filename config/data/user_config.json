@@ -1,0 +1,30 @@
+{
+    "cex_withdraw":{
+        "cex":"okx",
+        "chain":["Arbitrum"],
+        "currency":["ETH"],
+        "amount_range":[10.0, 15.0],
+        "time_range":[10.0, 15.0],
+        "destination_chain":"Linea",
+        "destination_currency":"USDT"
+    },
+    "destination_addresses":{
+        "0x1":"0x1",
+        "0x2":"0x2",
+        "0x3":"0x3"
+    },
+    "bridge":{
+        "bridge":"relay",
+        "from_chain":"Base",
+        "to_chain":"Arbitrum",
+        "from_currency":"ETH",
+        "to_currency":"ETH",
+        "amount_range":[10.0, 25.0],
+        "time_range":[10.0, 15.0]
+    },
+    "wallet_generator":{
+        "wallet_type":"evm",
+        "wallet_count":100,
+        "csv_headers":["private_key", "address"]
+    }
+}

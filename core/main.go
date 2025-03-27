@@ -1,58 +1,55 @@
 package main
 
 import (
+	"cw/account"
 	"cw/config"
+	"cw/ethClient"
 	"cw/globals"
 	"cw/logger"
 	"cw/modules"
 	"cw/process"
 	"cw/utils"
-	"os"
-
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	setENV()
+	utils.SetENV()
+	globals.SetInit()
+	selectModule := utils.UserChoice()
+	if selectModule == "" || selectModule == "Exit" {
+		logger.GlobalLogger.Warnf("user choice 'exit'.")
+		return
+	}
 
-	if err := config.InitConfigs(); err != nil {
+	if err := config.InitConfigs(selectModule); err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
 
-	addrPath, err := utils.GetPath(globals.Addresses)
+	if err := ethClient.EthClientFactory(config.Cfg.Rpc); err != nil {
+		logger.GlobalLogger.Error(err)
+		return
+	}
+
+	accs, err := account.AccsFactory(selectModule)
 	if err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
 
-	addresses, err := utils.FileReader(addrPath)
+	modules, err := modules.ModulesInit(selectModule, config.SelectModules...)
 	if err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
 
-	exchange, err := modules.ModulesInit(config.WithdrawCfg.CEX) // for example we init 2 cex
+	actionCore, err := process.NewActionCore()
 	if err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
 
-	if err := process.ActionsProcess(addresses, *exchange, config.WithdrawCfg.CEX); err != nil {
+	if err := actionCore.ActionsProcess(accs, modules, selectModule); err != nil {
 		logger.GlobalLogger.Error(err)
 		return
 	}
-}
-
-func setENV() string {
-	if err := godotenv.Load(); err != nil {
-		logger.GlobalLogger.Warnf("Not found ENV. Set default params(production)")
-		os.Setenv("ENV", "production")
-	}
-	env := os.Getenv("ENV")
-	if env == "" {
-		env = "development"
-		os.Setenv("ENV", "development")
-	}
-	return env
 }

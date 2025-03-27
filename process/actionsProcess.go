@@ -1,82 +1,41 @@
 package process
 
 import (
-	"context"
-	"cw/logger"
+	"cw/account"
 	"cw/models"
 	"cw/modules"
 	"fmt"
-	"time"
-
-	"golang.org/x/sync/errgroup"
 )
 
-func ActionsProcess(addresses []string, exchange modules.Exchanges, cex string) error {
-	actions, err := WithdrawFactory(addresses)
-	if err != nil {
-		return err
-	}
-
-	if err := validateActions(actions, exchange, cex); err != nil {
-		return err
-	}
-
-	loggingActions(actions)
-
-	return withdrawProcess(actions, exchange, cex)
+type ActionCore struct {
+	FunctionsMap   map[string]func(acc []*account.Account, mod *modules.Modules, name string) error
+	withdrawAction map[string]models.WithdrawAction
 }
 
-func withdrawProcess(actions []models.WithdrawAction, exchange modules.Exchanges, cex string) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	g, _ := errgroup.WithContext(ctx)
-
-	for _, act := range actions {
-		act := act
-		g.Go(func() error {
-			amount, err := calculateAmount(act.Currency, act.Amount, exchange, cex)
-			if err != nil {
-				return err
-			}
-
-			logger.GlobalLogger.Infof("[%s] Sleep before withdraw %v", act.Address, act.TimeRange)
-			time.Sleep(time.Second * time.Duration(act.TimeRange))
-			return exchange.Withdraw(cex, act.Currency, act.Address, act.Chain, amount)
-		})
+func NewActionCore() (*ActionCore, error) {
+	ac := &ActionCore{
+		withdrawAction: make(map[string]models.WithdrawAction),
 	}
 
-	return g.Wait()
+	ac.FunctionsMap = map[string]func(acc []*account.Account, mod *modules.Modules, name string) error{
+		"CexWithdrawer":   ac.withdrawProcess,
+		"Bridger":         ac.bridgeProcess,
+		"Cex_Bridger":     ac.cexBridgeProcess,
+		"WalletGenerator": ac.walletGeneratorAction,
+		"Сollector":       ac.CollectorAction,
+	}
+	return ac, nil
 }
 
-func validateActions(actions []models.WithdrawAction, exchange modules.Exchanges, cex string) error {
-	sums := getTokenSums(actions)
-
-	for token, amount := range sums {
-		balance, err := exchange.GetBalances(cex, token)
-		if err != nil {
-			return err
-		}
-
-		tokenPrice, err := exchange.GetPrices(cex, token)
-		if err != nil {
-			return err
-		}
-
-		// Add 1% to the balance to account for withdrawal fees
-		if (balance * 1.01) <= amount/tokenPrice {
-			return fmt.Errorf("there is not enough balance in the token: %s. Total amount: %v, CEX account balance: %v", token, sums[token], balance)
-		}
+func (a *ActionCore) ActionsProcess(accounts []*account.Account, mods *modules.Modules, selectModule string) error {
+	if mods == nil || selectModule == "" {
+		return fmt.Errorf("ошибка запуска процессинга, один из параметров нулевой")
 	}
 
-	return nil
-}
-
-func calculateAmount(token string, amount float64, exchange modules.Exchanges, cex string) (float64, error) {
-	tickerPrice, err := exchange.GetPrices(cex, token)
-	if err != nil {
-		return 0.0, err
+	function, ok := a.FunctionsMap[selectModule]
+	if !ok {
+		return fmt.Errorf("ошибка при выборе генератора действий")
 	}
 
-	return (amount / tickerPrice), nil
+	return function(accounts, mods, selectModule)
 }

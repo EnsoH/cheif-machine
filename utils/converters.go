@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"strconv"
 )
 
@@ -31,10 +32,42 @@ func ResponseConvert(curRaw interface{}, curParse interface{}) error {
 		return fmt.Errorf("currency data for token is not of type map[string]interface{}")
 	}
 
+	// log.Printf("resp: %+v", curRawMap)
 	curRawBytes, err := json.Marshal(curRawMap)
 	if err != nil {
 		return fmt.Errorf("failed to marshal currency data: %w", err)
 	}
 
 	return json.Unmarshal(curRawBytes, &curParse)
+}
+
+func ConvertToWei(amount float64, decimals int) (*big.Int, error) {
+	amountFloat := new(big.Float).SetFloat64(amount)
+
+	multiplier := new(big.Float).SetFloat64(1)
+	for i := 0; i < decimals; i++ {
+		multiplier.Mul(multiplier, new(big.Float).SetFloat64(10))
+	}
+
+	amountWei := new(big.Float).Mul(amountFloat, multiplier)
+
+	wei := new(big.Int)
+	amountWei.Int(wei)
+
+	return wei, nil
+}
+
+func ConvertFromWei(wei *big.Int, decimals int) float64 {
+	weiFloat := new(big.Float).SetInt(wei)
+
+	divisor := new(big.Float).SetFloat64(1)
+	for i := 0; i < decimals; i++ {
+		divisor.Mul(divisor, new(big.Float).SetFloat64(10))
+	}
+
+	result := new(big.Float).Quo(weiFloat, divisor)
+
+	// Преобразуем в float64
+	floatResult, _ := result.Float64()
+	return floatResult
 }

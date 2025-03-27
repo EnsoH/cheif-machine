@@ -3,6 +3,7 @@ package modules
 import (
 	"cw/httpClient"
 	"cw/logger"
+	"cw/models"
 	"fmt"
 	"strconv"
 )
@@ -21,13 +22,18 @@ func NewExchangeModule(httpclinet *httpClient.HttpClient, cexNames ...string) (*
 	}
 
 	for _, cex := range cexNames {
-		optionsMap[cex](ex)
+		if _, ok := exhangeOptionsMap[cex]; !ok {
+			continue
+		}
+
+		exhangeOptionsMap[cex](ex)
 	}
 
 	return ex, nil
 }
 
 func (e *Exchanges) Withdraw(cexName, token, address, network string, amount float64) error {
+	// TODO: написать метод для формирования числа с заданным децималс под определенный токен.
 	str := strconv.FormatFloat(amount, 'f', 6, 64)
 	convertAmount, _ := strconv.ParseFloat(str, 64)
 
@@ -56,12 +62,12 @@ func (e *Exchanges) GetBalances(cexName, token string) (float64, error) {
 		return 0, nil
 	}
 
-	usdt, err := bal.GetBalance(token)
+	tokenEnable, err := bal.GetBalance(token)
 	if err != nil {
 		return 0, nil
 	}
 
-	return *usdt.Free, nil
+	return *tokenEnable.Free, nil
 
 }
 
@@ -84,14 +90,13 @@ func (e *Exchanges) GetPrices(cexName, token string) (float64, error) {
 	return price, nil
 }
 
-func (e *Exchanges) GetChains(cexName, token string) error {
+func (e *Exchanges) GetChains(cexName, token, withdrawChain string) (*models.ChainList, error) {
 	cex, err := e.getCEX(cexName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return cex.GetChains(token)
-
+	return cex.GetChains(token, withdrawChain)
 }
 
 func (e *Exchanges) getCEX(cexName string) (ExchangeModule, error) {
