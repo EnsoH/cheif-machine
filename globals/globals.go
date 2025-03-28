@@ -35,13 +35,6 @@ var (
 	Destinations     = "destination_address"
 )
 
-var (
-	TokenNamesMap = map[string]string{}
-	// DecimalsMap   = map[string]int{
-	// 	""
-	// }
-)
-
 // ####### Default GLOBALS #########
 var (
 	// Max approve value.
@@ -58,12 +51,106 @@ var (
 
 	// convertation user token name to software tokens names
 	TokenSymbolToName = map[string]string{
-		"BTC":  "bitcoin",
-		"ETH":  "ethereum",
-		"BNB":  "bnb",
-		"USDT": "tether",
-		"SOL":  "solana",
-		"USDC": "usdcoin",
+		"BTC":    "bitcoin",
+		"ETH":    "ethereum",
+		"USDT":   "tether",
+		"XRP":    "ripple",
+		"BNB":    "bnb",
+		"SOL":    "solana",
+		"USDC":   "usdcoin",
+		"DOGE":   "dogecoin",
+		"ADA":    "cardano",
+		"TRX":    "tron",
+		"stETH":  "lido-staked-ether",
+		"WBTC":   "wrapped-bitcoin",
+		"TON":    "toncoin",
+		"LINK":   "chainlink",
+		"LEO":    "leobitfinex",
+		"XLM":    "stellar",
+		"AVAX":   "avalanche",
+		"SUI":    "sui",
+		"SHIB":   "shiba-inu",
+		"HBAR":   "hedera-hashgraph",
+		"LTC":    "litecoin",
+		"DOT":    "polkadot",
+		"OM":     "mantra-dao",
+		"BCH":    "bitcoin-cash",
+		"BGB":    "bitget-token",
+		"PI":     "pi-network-1",
+		"USDe":   "ethena-usde",
+		"HYPE":   "hyperliquid",
+		"weETH":  "wrapped-eeth",
+		"XMR":    "monero",
+		"UNI":    "uniswap",
+		"DAI":    "multicollateraldai",
+		"NEAR":   "near-protocol",
+		"APT":    "aptos",
+		"PEPE":   "pepe",
+		"OKB":    "okb",
+		"CRO":    "crypto-com-cro",
+		"GT":     "gatechain-token",
+		"MNT":    "mantlexyz",
+		"ICP":    "internet-computer",
+		"ONDO":   "ondo-finance",
+		"AAVE":   "aave",
+		"ETC":    "ethereum-classic",
+		"FDUSD":  "first-digital-usd",
+		"TAO":    "bittensor",
+		"VET":    "vechainthor",
+		"TIA":    "celestia",
+		"TRUMP":  "official-trump",
+		"ENA":    "ethena",
+		"ATOM":   "cosmos",
+		"RENDER": "render-token",
+		"FIL":    "filecoin",
+		"POL":    "polygon-ecosystem-token",
+		"KAS":    "kaspa",
+		"S":      "sonic",
+		"ALGO":   "algorand",
+		"FTN":    "fasttoken",
+		"ARB":    "arbitrum",
+		"FTM":    "fantom",
+		"DEXE":   "dexe-network",
+		"JUP":    "jupiter-stattion",
+		"KCS":    "kucoin-shares",
+		"OP":     "optimism",
+		"IP":     "story-protocol",
+		"FET":    "fetch-ai",
+		"MKR":    "maker",
+		"MOVE":   "movement-labs",
+		"NEXO":   "nexo",
+		"XDC":    "xdc-network",
+		"IMX":    "immutable-x",
+		"QNT":    "quant",
+		"WLD":    "world-coin",
+		"STX":    "blockstack",
+		"BONK":   "bonk-new",
+		"SEI":    "sei-network",
+		"INJ":    "injective-protocol",
+		"GRT":    "the-graph",
+		"BERA":   "berachain",
+		"FORM":   "binaryx-new",
+		"THETA":  "theta-token",
+		"EOS":    "eos",
+		"FLR":    "flare",
+		"LDO":    "lido-dao",
+		"PYUSD":  "paypal-usd",
+		"XAUT":   "tether-gold",
+		"GALA":   "gala",
+		"JTO":    "jito-labs",
+		"XTZ":    "tezos",
+		"SAND":   "sandbox",
+		"IOTA":   "iota",
+		"CRV":    "curve",
+		"AB":     "ab",
+		"BTT":    "bittorrent-new",
+		"PAXG":   "pax-gold",
+		"BSV":    "bitcoin-sv",
+		"mSOL":   "marinade",
+		"CAKE":   "pancakeswap",
+		"KAIA":   "kaia-chain",
+		"FLOW":   "flow",
+		"FLOKI":  "floki",
 	}
 
 	// Bringing to a common standard of names in software due to different network names on different exchanges.
@@ -98,6 +185,10 @@ var (
 			"Blast":         "BLAST",
 			"Doge":          "Dogecoin",
 			"Sui":           "SUI",
+			"Story":         "STORY",
+			"Ftm":           "FTM",
+			"Sonic":         "SONIC",
+			"ICP":           "ICP",
 		},
 		"binance": {
 			"Arbitrum": "ARBITRUM",
@@ -230,6 +321,12 @@ var (
 			"USDT": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
 			"USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
 		},
+		33139: {
+			"APE": "0x0000000000000000000000000000000000000000",
+		},
+		81457: {
+			"ETH": "0x0000000000000000000000000000000000000000",
+		},
 		42161: {
 			"ETH":  "0x0000000000000000000000000000000000000000",
 			"USDC": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
@@ -270,58 +367,21 @@ var (
 	ExploerLink = map[int64]string{
 		1:       "https://etherscan.io",
 		42161:   "https://arbiscan.io",
-		2741:    "",
-		33139:   "",
+		33139:   "https://apescan.io",
 		43114:   "https://snowtrace.io",
 		8453:    "https://basescan.org",
-		81457:   "",
+		81457:   "https://blastscan.io/",
 		56:      "https://bscscan.com",
 		59144:   "https://lineascan.build",
 		1135:    "https://blockscout.lisk.com",
-		5000:    "",
-		34443:   "",
+		5000:    "https://mantlescan.xyz/",
+		34443:   "https://modescan.io/",
 		10:      "https://optimistic.etherscan.io",
 		137:     "https://polygonscan.com",
-		1101:    "",
-		324:     "",
-		7777777: "",
+		1101:    "https://zkevm.polygonscan.com/",
+		324:     "https://zkscan.io/",
+		7777777: "https://zora.thesuperscan.io/",
 	}
-
-	// Map Id blockchains. It is not recommended to change the values.
-	// Only supplement in case of adding support for another blockchain
-	// ChainIdsMap = map[string]int{
-	// 	"ETH":       1,
-	// 	"Arbitrum":  42161,
-	// 	"Abstract":  2741,
-	// 	"ApeChain":  33139,
-	// 	"Avalanche": 43114,
-	// 	"Base":      8453,
-	// 	"Berachain": 80094,
-	// 	"Blast":     81457,
-	// 	"BNB":       56,
-	// 	"Linea":     59144,
-	// 	"Lisk":      1135,
-	// 	"Mantle":    5000,
-	// 	"Mode":      34443,
-	// 	"Optimism":  10,
-	// 	"Poligon":   137,
-	// 	"PoligonZk": 1101,
-	// 	"ZkSync":    324,
-	// 	"Zora":      7777777,
-	// }
-
-	// Decimals map. It is not recommended to change the values.
-	// Only supplement in case of adding support for another token
-	// Currently intended for the relay module
-	// RelayDecimalMap = map[string]int{
-	// 	"ETH":  18,
-	// 	"WETH": 18,
-	// 	"AVAX": 18,
-	// 	"DAI":  18,
-	// 	"USDT": 6,
-	// 	"USDC": 6,
-	// }
-
 )
 
 // ###### Base ERC20 ABI. #######
@@ -436,5 +496,3 @@ var (
 	}
 ]`)
 )
-
-// #
