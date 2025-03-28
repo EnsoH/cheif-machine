@@ -38,6 +38,7 @@ type UserConfig struct {
 	WithdrawConfig     WithdrawConfig     `json:"cex_withdraw"`
 	BridgeConfig       BridgeConfig       `json:"bridge"`
 	WalletGeneratorCfg WalletGeneratorCfg `json:"wallet_generator"`
+	CollectorConfig    CollectorConfig    `json:"collector_config"`
 }
 
 // ##############################
@@ -139,6 +140,12 @@ type WalletGeneratorCfg struct {
 	WalletType  string   `json:"wallet_type"`
 	WalletCount uint32   `json:"wallet_count"`
 	CsvHeaders  []string `json:"csv_headers"`
+}
+
+type CollectorConfig struct {
+	DestinationAddress   string            `json:"destination_address"`
+	DestinationAddresses map[string]string `json:"destination_addresses"`
+	Chains               []string          `json:"chains"`
 }
 
 // #################################

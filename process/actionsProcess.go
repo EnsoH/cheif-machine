@@ -22,7 +22,7 @@ func NewActionCore() (*ActionCore, error) {
 		"Bridger":         ac.bridgeProcess,
 		"Cex_Bridger":     ac.cexBridgeProcess,
 		"WalletGenerator": ac.walletGeneratorAction,
-		"Сollector":       ac.CollectorAction,
+		"Collector":       ac.CollectorAction,
 	}
 	return ac, nil
 }

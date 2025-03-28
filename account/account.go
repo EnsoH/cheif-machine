@@ -3,13 +3,13 @@ package account
 import (
 	"context"
 	"crypto/ecdsa"
+	"cw/config"
 	"cw/globals"
 	"cw/logger"
 	"cw/utils"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"io/ioutil"
+	"os"
+	"strings"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -73,50 +73,56 @@ func AccsFactory(module string) ([]*Account, error) {
 		return nil, err
 	}
 
-	if module == "Сollector" {
-		destMap, err := readDestinations()
+	if module == "Collector" {
+		destMap, defaultDest, err := readDestinations()
 		if err != nil {
 			return nil, err
 		}
-		applyDestinations(accounts, destMap)
+		applyDestinations(accounts, destMap, defaultDest)
 	}
 
 	return accounts, nil
 }
 
-func readDestinations() (map[common.Address]common.Address, error) {
-	destPath, err := utils.GetPath(globals.Destinations)
-	if err != nil {
-		logger.GlobalLogger.Error(err)
-		return nil, err
-	}
-
-	data, err := ioutil.ReadFile(destPath)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения файла destination адресов: %w", err)
-	}
-
-	var rawDestMap map[string]string
-	if err := json.Unmarshal(data, &rawDestMap); err != nil {
-		return nil, fmt.Errorf("ошибка декодирования JSON: %w", err)
-	}
-
+func readDestinations() (map[common.Address]common.Address, common.Address, error) {
 	destMap := make(map[common.Address]common.Address)
-	for mainAddr, destAddr := range rawDestMap {
-		if !common.IsHexAddress(mainAddr) || !common.IsHexAddress(destAddr) {
-			logger.GlobalLogger.Warnf("Некорректный адрес в ассоциации: %s -> %s", mainAddr, destAddr)
-			continue
+	var defaultDest common.Address
+
+	if len(config.UserCfg.CollectorConfig.DestinationAddresses) > 0 {
+		for mainAddr, destAddr := range config.UserCfg.CollectorConfig.DestinationAddresses {
+			mainAddr = strings.ToLower(strings.TrimSpace(mainAddr))
+			destAddr = strings.ToLower(strings.TrimSpace(destAddr))
+
+			if !common.IsHexAddress(mainAddr) || !common.IsHexAddress(destAddr) {
+				logger.GlobalLogger.Errorf("Некорректный адрес в ассоциации: %s -> %s", mainAddr, destAddr)
+				os.Exit(1)
+			}
+			destMap[common.HexToAddress(mainAddr)] = common.HexToAddress(destAddr)
 		}
-		destMap[common.HexToAddress(mainAddr)] = common.HexToAddress(destAddr)
+	} else {
+		dest := strings.ToLower(strings.TrimSpace(config.UserCfg.CollectorConfig.DestinationAddress))
+		if common.IsHexAddress(dest) {
+			defaultDest = common.HexToAddress(dest)
+		} else {
+			logger.GlobalLogger.Errorf("Неверный формат destination_address: %s", dest)
+			os.Exit(1)
+		}
 	}
 
-	return destMap, nil
+	return destMap, defaultDest, nil
 }
 
-func applyDestinations(accounts []*Account, destMap map[common.Address]common.Address) {
+func applyDestinations(accounts []*Account, destMap map[common.Address]common.Address, defaultDest common.Address) {
 	for _, acc := range accounts {
+		if !common.IsHexAddress(acc.DestinationAddr.Hex()) {
+			logger.GlobalLogger.Errorf("Некорректный destination-адрес для аккаунта: %s", acc.Address.Hex())
+			os.Exit(1)
+		}
+
 		if destAddr, ok := destMap[acc.Address]; ok {
 			acc.DestinationAddr = destAddr
+		} else {
+			acc.DestinationAddr = defaultDest
 		}
 	}
 }
@@ -127,6 +133,7 @@ func processPrivateKeys(inputs []string) ([]*Account, error) {
 		accounts = make([]*Account, 0, len(inputs))
 	)
 	g, _ := errgroup.WithContext(context.Background())
+
 	for _, input := range inputs {
 		input := input
 		g.Go(func() error {
@@ -144,6 +151,7 @@ func processPrivateKeys(inputs []string) ([]*Account, error) {
 			return nil
 		})
 	}
+
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}

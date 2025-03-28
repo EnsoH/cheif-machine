@@ -8,10 +8,12 @@
         "destination_chain":"Linea",
         "destination_currency":"USDT"
     },
-    "destination_addresses":{
-        "0x1":"0x1",
-        "0x2":"0x2",
-        "0x3":"0x3"
+    "collector_config":{
+        "destination_addresses":{
+            "0x1":"0x1"
+        },
+        "destination_address":"",
+        "chains":["Base", "Optimism"]
     },
     "bridge":{
         "bridge":"relay",

@@ -5,6 +5,7 @@ import (
 	"cw/config"
 	"cw/logger"
 	"cw/modules"
+	"log"
 	"math/rand"
 	"sync"
 	"time"
@@ -17,7 +18,7 @@ func (ac *ActionCore) CollectorAction(accs []*account.Account, mod *modules.Modu
 
 	for _, acc := range accs {
 		wg.Add(1)
-
+		log.Printf("acc: %+v", acc)
 		go func(a *account.Account) {
 			defer wg.Done()
 

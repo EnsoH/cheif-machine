@@ -94,7 +94,7 @@ func ModulesInit(moduleChoice string, names ...string) (*Modules, error) {
 			return nil, err
 		}
 		mod.WalletGenerators = generator
-	case "Сollector":
+	case "Collector":
 		collector := NewCollector()
 		mod.Collector = collector
 	default:

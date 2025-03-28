@@ -13,7 +13,7 @@ func UserChoice() string {
 		"2. Bridger",
 		"3. Cex_Bridger",
 		"4. WalletGenerator",
-		"5. Сollector",
+		"5. Collector",
 		"0. Exit",
 	}
 
@@ -24,7 +24,7 @@ func UserChoice() string {
 		selected = rgx.ReplaceAllString(selected, "")
 
 		switch selected {
-		case "CexWithdrawer", "Bridger", "Cex_Bridger", "WalletGenerator", "Сollector":
+		case "CexWithdrawer", "Bridger", "Cex_Bridger", "WalletGenerator", "Collector":
 			return selected
 		case "Exit":
 			logger.GlobalLogger.Infof("Exiting program.")
