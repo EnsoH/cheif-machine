@@ -99,6 +99,7 @@ type ChainList struct {
 	Chain       string
 	Network     string
 	WithdrawFee float64
+	WithdrawMin float64
 }
 
 type TokenInfo struct {

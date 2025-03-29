@@ -67,6 +67,9 @@ func (k *KucoinAdapter) GetChains(token, withdrawChain string) (*models.ChainLis
 			if param.Withdraw {
 				chainParams.Chain = param.Id
 				chainParams.WithdrawFee = param.Fee
+				if withdMin, err := utils.ConvertToFloat(param.Limits.Withdraw.Min); err != nil {
+					chainParams.WithdrawMin = withdMin
+				}
 			}
 		}
 	}

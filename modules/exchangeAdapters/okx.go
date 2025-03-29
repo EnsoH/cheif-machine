@@ -73,6 +73,7 @@ func (o *OkxAdapter) GetChains(token, withdrawChain string) (*models.ChainList, 
 				chainParams.Chain = networkName
 				chainParams.WithdrawFee = networkInfo.Fee
 				chainParams.Network = networkInfo.Id
+				chainParams.WithdrawMin = networkInfo.Limits.Withdraw.Min
 			}
 		}
 	}

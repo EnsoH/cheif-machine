@@ -74,6 +74,9 @@ func (b *BinanceAdapter) GetChains(token, withdrawChain string) (*models.ChainLi
 				if fee, err := utils.ConvertToFloat(param.Fee); err == nil {
 					chainParams.WithdrawFee = fee
 				}
+				if withMin, err := utils.ConvertToFloat(param.Info.WithdrawMin); err == nil {
+					chainParams.WithdrawMin = withMin
+				}
 			}
 		}
 	}

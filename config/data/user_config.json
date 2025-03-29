@@ -1,9 +1,9 @@
 {
     "cex_withdraw":{
-        "cex":"binance",
-        "chain":["Sol"],
-        "currency":["SOL"],
-        "amount_range":[1.0, 15.0],
+        "cex":"mexc",
+        "chain":["Eth"],
+        "currency":["USDT"],
+        "amount_range":[1.0, 1.5],
         "time_range":[10.0, 15.0],
         "destination_chain":"Linea",
         "destination_currency":"USDT"
@@ -17,11 +17,11 @@
     },
     "bridge":{
         "bridge":"relay",
-        "from_chain":"Base",
+        "from_chain":"Linea",
         "to_chain":"Arbitrum",
         "from_currency":"ETH",
         "to_currency":"ETH",
-        "amount_range":[10.0, 25.0],
+        "amount_range":[1.0, 25.0],
         "time_range":[10.0, 15.0]
     },
     "wallet_generator":{

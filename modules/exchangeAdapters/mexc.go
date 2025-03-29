@@ -64,8 +64,11 @@ func (m *MexcAdapter) GetChains(token, withdrawChain string) (*models.ChainList,
 		if param.Info.NetWork == networkName {
 			if param.Active {
 				chainParams.Chain = param.Info.NetWork
-				if withdrawMin, err := utils.ConvertToFloat(param.Info.WithdrawFee); err == nil {
-					chainParams.WithdrawFee = withdrawMin
+				if withdrawFee, err := utils.ConvertToFloat(param.Info.WithdrawFee); err == nil {
+					chainParams.WithdrawFee = withdrawFee
+				}
+				if withdrawMin, err := utils.ConvertToFloat(param.Limits.Withdraw.Min); err == nil {
+					chainParams.WithdrawMin = withdrawMin
 				}
 			}
 		}

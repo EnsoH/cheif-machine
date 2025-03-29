@@ -292,7 +292,7 @@ var (
 			"Polygon":  "MATIC",
 			"Sol":      "SOL",
 			// "KAVAEVM":  "KAVA EVM",
-			"Eth":  "ETH",
+			"Eth":  "ERC20",
 			"Celo": "CELO",
 			"Avax": "AVAXC",
 			"Near": "NEAR",

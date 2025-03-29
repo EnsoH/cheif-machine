@@ -71,7 +71,7 @@ func getTokenContract(chain, currency string) (common.Address, error) {
 
 	tokenContract, ok := globals.TokenContracts[chainId][currency]
 	if !ok {
-		return common.Address{}, fmt.Errorf("нет контракта токена")
+		return common.Address{}, fmt.Errorf("нет контракта токена %s в сети %s", currency, chain)
 	}
 
 	return common.HexToAddress(tokenContract), nil

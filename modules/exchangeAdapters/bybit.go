@@ -73,8 +73,11 @@ func (ba *BybitAdapter) GetChains(token, withdrawChain string) (*models.ChainLis
 	for _, param := range curParse.Info.Chains {
 		if param.ChainType == networkName {
 			chainParams.Chain = param.Chain
+			if withdrawFee, err := utils.ConvertToFloat(param.WithdrawFee); err == nil {
+				chainParams.WithdrawFee = withdrawFee
+			}
 			if withdrawMin, err := utils.ConvertToFloat(param.WithdrawMin); err == nil {
-				chainParams.WithdrawFee = withdrawMin
+				chainParams.WithdrawMin = withdrawMin
 			}
 		}
 	}

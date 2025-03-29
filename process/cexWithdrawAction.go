@@ -152,11 +152,12 @@ func gatherTokenData(exch modules.Exchanges, token string) (models.TokenInfo, bo
 			logger.GlobalLogger.Warnf("Ошибка получения параметров вывода для %s в сети %s: %v", token, chain, err)
 			continue
 		}
-		if withdrawParams.Chain == "" {
 
+		if withdrawParams.Chain == "" {
 			continue
 		}
-		if balance > withdrawParams.WithdrawFee {
+
+		if balance > (withdrawParams.WithdrawFee + withdrawParams.WithdrawMin) {
 			availableUSD := (balance - withdrawParams.WithdrawFee) * price
 			if availableUSD > 0 {
 				usableChains = append(usableChains, chain)
