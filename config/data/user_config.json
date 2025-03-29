@@ -1,9 +1,9 @@
 {
     "cex_withdraw":{
-        "cex":"okx",
-        "chain":["Arbitrum"],
-        "currency":["ETH"],
-        "amount_range":[10.0, 15.0],
+        "cex":"binance",
+        "chain":["Sol"],
+        "currency":["SOL"],
+        "amount_range":[1.0, 15.0],
         "time_range":[10.0, 15.0],
         "destination_chain":"Linea",
         "destination_currency":"USDT"

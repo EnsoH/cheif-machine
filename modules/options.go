@@ -7,6 +7,9 @@ import (
 	"cw/modules/bridgeAdapters"
 	"cw/modules/exchangeAdapters"
 	"cw/modules/walletGeneratorAdapters"
+	"fmt"
+	"os"
+	"strings"
 
 	ccxt "github.com/ccxt/ccxt/go/v4"
 )
@@ -24,6 +27,11 @@ type ExchangeOption func(*Exchanges)
 
 func withBybit() ExchangeOption {
 	return func(e *Exchanges) {
+		if err := validateApiKeys("bybit"); err != nil {
+			logger.GlobalLogger.Error(err)
+			os.Exit(1)
+		}
+
 		bybit := ccxt.NewBybit(map[string]interface{}{
 			"apiKey":          config.Cfg.CEXConfigs.BybitCfg.API_key,
 			"secret":          config.Cfg.CEXConfigs.BybitCfg.API_secret,
@@ -36,6 +44,11 @@ func withBybit() ExchangeOption {
 
 func withBinance() ExchangeOption {
 	return func(e *Exchanges) {
+		if err := validateApiKeys("binance"); err != nil {
+			logger.GlobalLogger.Error(err)
+			os.Exit(1)
+		}
+
 		binance := ccxt.NewBinance(map[string]interface{}{
 			"apiKey":          config.Cfg.CEXConfigs.BinanceCfg.API_key,
 			"secret":          config.Cfg.CEXConfigs.BinanceCfg.API_secret,
@@ -51,6 +64,11 @@ func withBinance() ExchangeOption {
 
 func withMexc() ExchangeOption {
 	return func(e *Exchanges) {
+		if err := validateApiKeys("mexc"); err != nil {
+			logger.GlobalLogger.Error(err)
+			os.Exit(1)
+		}
+
 		mexc := ccxt.NewMexc(map[string]interface{}{
 			"apiKey":          config.Cfg.CEXConfigs.MexcCfg.API_key,
 			"secret":          config.Cfg.CEXConfigs.MexcCfg.API_secret,
@@ -63,6 +81,11 @@ func withMexc() ExchangeOption {
 
 func withKucoin() ExchangeOption {
 	return func(e *Exchanges) {
+		if err := validateApiKeys("kucoin"); err != nil {
+			logger.GlobalLogger.Error(err)
+			os.Exit(1)
+		}
+
 		kucoin := ccxt.NewKucoin(map[string]interface{}{
 			"apiKey":          config.Cfg.CEXConfigs.KucoinCfg.API_key,
 			"secret":          config.Cfg.CEXConfigs.KucoinCfg.API_secret,
@@ -77,6 +100,11 @@ func withKucoin() ExchangeOption {
 
 func withOkx() ExchangeOption {
 	return func(e *Exchanges) {
+		if err := validateApiKeys("okx"); err != nil {
+			logger.GlobalLogger.Error(err)
+			os.Exit(1)
+		}
+
 		okx := ccxt.NewOkx(map[string]interface{}{
 			"apiKey":          config.Cfg.CEXConfigs.OkxCfg.API_key,
 			"secret":          config.Cfg.CEXConfigs.OkxCfg.API_secret,
@@ -143,4 +171,33 @@ func withSol() WalletGenOptions {
 	return func(w *WalletGenerator) {
 		w.WalletGenMap["sol"] = walletGeneratorAdapters.NewSolAdapter()
 	}
+}
+
+// ############## API KEY CHECKER #################
+func validateApiKeys(module string) error {
+	switch module {
+	case "bybit":
+		if strings.TrimSpace(config.Cfg.CEXConfigs.BybitCfg.API_key) == "" || strings.TrimSpace(config.Cfg.CEXConfigs.BybitCfg.API_secret) == "" {
+			return fmt.Errorf("ключи для bybit в конфиге пустые")
+		}
+	case "binance":
+		if strings.TrimSpace(config.Cfg.CEXConfigs.BinanceCfg.API_key) == "" || strings.TrimSpace(config.Cfg.CEXConfigs.BinanceCfg.API_secret) == "" {
+			return fmt.Errorf("ключи для binance в конфиге пустые")
+		}
+	case "okx":
+		if strings.TrimSpace(config.Cfg.CEXConfigs.OkxCfg.API_key) == "" || strings.TrimSpace(config.Cfg.CEXConfigs.OkxCfg.API_secret) == "" || strings.TrimSpace(config.Cfg.CEXConfigs.OkxCfg.Password) == "" {
+			return fmt.Errorf("ключи для okx в конфиге пустые")
+		}
+	case "mexc":
+		if strings.TrimSpace(config.Cfg.CEXConfigs.MexcCfg.API_key) == "" || strings.TrimSpace(config.Cfg.CEXConfigs.MexcCfg.API_secret) == "" {
+			// logger.GlobalLogger.Errorf("ключ в конфиге пустой")
+			return fmt.Errorf("ключи для mexc в конфиге пустые")
+		}
+	case "kucoin":
+		if strings.TrimSpace(config.Cfg.CEXConfigs.KucoinCfg.API_key) == "" || strings.TrimSpace(config.Cfg.CEXConfigs.KucoinCfg.API_secret) == "" || strings.TrimSpace(config.Cfg.CEXConfigs.KucoinCfg.Password) == "" {
+			return fmt.Errorf("ключи для kucoin в конфиге пустые")
+		}
+	}
+
+	return nil
 }

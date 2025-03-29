@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	utils.SetENV()
+	// utils.SetENV()
 	globals.SetInit()
 	selectModule := utils.UserChoice()
 	if selectModule == "" || selectModule == "Exit" {

@@ -68,6 +68,14 @@ func AccsFactory(module string) ([]*Account, error) {
 		return []*Account{}, nil
 	}
 
+	if module == "CexWithdrawer" {
+		accounts, err := processAddresses(inputs)
+		if err != nil {
+			return nil, err
+		}
+		return accounts, nil
+	}
+
 	accounts, err := processPrivateKeys(inputs)
 	if err != nil {
 		return nil, err
@@ -155,5 +163,22 @@ func processPrivateKeys(inputs []string) ([]*Account, error) {
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
+	return accounts, nil
+}
+
+func processAddresses(inputs []string) ([]*Account, error) {
+	var (
+		accounts = make([]*Account, 0, len(inputs))
+	)
+
+	for _, input := range inputs {
+		input := input
+		if !common.IsHexAddress(input) {
+			return nil, errors.New("invalid address format: " + input)
+		}
+		addr := common.HexToAddress(input)
+		accounts = append(accounts, NewAccount(WithAddress(addr)))
+	}
+
 	return accounts, nil
 }
