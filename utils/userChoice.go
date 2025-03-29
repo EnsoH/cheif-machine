@@ -47,15 +47,3 @@ func promptSelection(message string, options []string) string {
 	}
 	return selected
 }
-
-// func handleSubMenu(menuName string, subMenu []string, rgx *regexp.Regexp) string {
-// 	for {
-// 		selected := promptSelection("Choose "+menuName+" sub-module:", subMenu)
-// 		selected = rgx.ReplaceAllString(selected, "")
-
-// 		if selected == "Back" {
-// 			return ""
-// 		}
-// 		return selected
-// 	}
-// }

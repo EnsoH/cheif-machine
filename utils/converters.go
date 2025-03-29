@@ -67,7 +67,6 @@ func ConvertFromWei(wei *big.Int, decimals int) float64 {
 
 	result := new(big.Float).Quo(weiFloat, divisor)
 
-	// Преобразуем в float64
 	floatResult, _ := result.Float64()
 	return floatResult
 }

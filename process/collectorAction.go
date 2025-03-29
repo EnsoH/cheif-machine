@@ -5,7 +5,6 @@ import (
 	"cw/config"
 	"cw/logger"
 	"cw/modules"
-	"log"
 	"math/rand"
 	"sync"
 	"time"
@@ -18,19 +17,24 @@ func (ac *ActionCore) CollectorAction(accs []*account.Account, mod *modules.Modu
 
 	for _, acc := range accs {
 		wg.Add(1)
-		log.Printf("acc: %+v", acc)
+
 		go func(a *account.Account) {
 			defer wg.Done()
 
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
+			chains := config.UserCfg.CollectorConfig.Chains
+			if len(chains) == 0 {
+				logger.GlobalLogger.Errorf("список сетей пуст, проверьте конфиг")
+				return
+			}
+
 			randVal := r.Intn(260) + 1
 			logger.GlobalLogger.Infof("[%s] Processing with delay %d sec", a.Address.Hex(), randVal)
-
 			time.Sleep(time.Second * time.Duration(randVal))
 
-			if err := mod.Collector.Collect(a, []string{"Base", "Optimism", "Arbitrum"}); err != nil {
+			if err := mod.Collector.Collect(a, chains); err != nil {
 				logger.GlobalLogger.Errorf("Error processing account %s: %v", a.Address.Hex(), err)
 				// return
 			}
