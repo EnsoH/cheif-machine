@@ -1,4 +1,4 @@
-## Cheif Machine
+## Chief Machine
 
 ### Автовывод с бирж
 
@@ -154,7 +154,7 @@ If this software has been useful to you, consider making a donation:
 - **Telegram Chat:** [https://t.me/chatcheifssq]
 
 ---
-## Cheif Machine
+## Chief Machine
 
 ### Auto Withdrawal from Exchanges
 
